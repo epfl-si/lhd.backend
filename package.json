@@ -1,0 +1,54 @@
+{
+  "name": "lhd-backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "tsx src/index.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/epfl-si/lil.backend.git"
+  },
+  "keywords": [],
+  "author": "EPFL ISAS-FSD",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/epfl-si/lhd.backend/issues"
+  },
+  "homepage": "https://github.com/epfl-si/lhd.backend#readme",
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/crypto-js": "^4.2.2",
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.6.0",
+    "@types/nodemailer": "^8.0.1",
+    "@types/pg": "^8.20.0",
+    "prisma": "^7.10.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@apollo/server": "^5.5.0",
+    "@as-integrations/express5": "^1.1.2",
+    "@pothos/core": "^4.12.0",
+    "@pothos/plugin-prisma": "^4.14.3",
+    "@pothos/plugin-scope-auth": "^4.1.6",
+    "@pothos/plugin-validation": "^4.2.0",
+    "@prisma/adapter-pg": "^7.10.0",
+    "@prisma/client": "^7.10.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "graphql-scalars": "^1.25.0",
+    "jsonwebtoken": "^9.0.3",
+    "jwks-rsa": "^4.0.1",
+    "nodemailer": "^9.0.0",
+    "pg": "^8.20.0",
+    "zod": "^4.3.6"
+  }
+}
