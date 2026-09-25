@@ -1,6 +1,7 @@
 import {builder} from "../builder";
 import {OptimisticLock} from "../../lib/optimisticLock";
 import {z} from "zod";
+import {buildSearchConditions} from "../../lib/searchConditionBuilder";
 
 const BioOrgRef = builder.prismaObject('BioOrg', {
 	name: 'BioOrg',
@@ -59,7 +60,7 @@ builder.queryField('organismsFromFullText', (t) =>
 	t.field({
 		type: BioOrgListResult,
 		args: {
-			search: t.arg.string(),
+			search: t.arg.string({defaultValue: '', required: true}),
 			skip: t.arg.int({defaultValue: 0, required: true}),
 			take: t.arg.int({defaultValue: 20, required: true}),
 		},
@@ -73,7 +74,7 @@ builder.queryField('organismsFromFullText', (t) =>
 		},
 		resolve: async (root, args, ctx: any) => {
 			const bioList =  await ctx.prisma.BioOrg.findMany({
-				where: { organism: { contains: args.search } },
+				where: { organism: buildSearchConditions(args.search) },
 				orderBy: [
 					{
 						organism: 'asc',

@@ -31,6 +31,10 @@ export function getPrismaForUser(user: UserInfo) {
   return prisma.$extends({
     query: {
       async $allOperations({ model, operation, args, query }) {
+        if (args.where) {
+          args.where = addInsensitiveMode(args.where);
+        }
+
         const writeOps = ['create', 'update', 'delete', 'deleteMany'];
         if (!model || !writeOps.includes(operation)) {
           return query(args);
