@@ -31,6 +31,15 @@ builder.queryType({
 	fields: (t) => ({
 		bioOrgs: t.prismaField({
 			type: ['BioOrg'],
+			authScopes: {
+				needPermission: 'canListOrganisms'
+			},
+			args: {
+				barcode: t.arg.string(),
+			},
+			validate: z.object({
+				barcode: z.string().nonempty(),
+			}),
 			resolve: async (query, root, args, ctx: any, info) => {
 				return await ctx.prisma.BioOrg.findMany();
 			},
