@@ -6,7 +6,7 @@ UserRef.implement({
   description: 'Connected user info',
   fields: (t) => ({
     groups: t.exposeStringList('groups'),
-    username: t.exposeString('username'),
+    userName: t.exposeString('userName'),
     isAdmin: t.exposeBoolean('isAdmin'),
     isCosec: t.exposeBoolean('isCosec'),
     isManager: t.exposeBoolean('isManager'),

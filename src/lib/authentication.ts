@@ -31,7 +31,7 @@ export async function authenticateFromBearerToken(req: Request<{}, any, any, Par
     name: authenticationResult.given_name + ' ' + authenticationResult.family_name,
     sciper: authenticationResult.uniqueid,
     userEmail: authenticationResult.mail,
-    username: ( authenticationResult.unique_name ||
+    userName: ( authenticationResult.unique_name ||
       authenticationResult.gaspar )  // EPFL-ism in Entra
   };
 

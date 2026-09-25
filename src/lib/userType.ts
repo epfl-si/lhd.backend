@@ -2,7 +2,7 @@ export interface UserInfo {
   groups: string[];
   name: string;
   sciper?: string;
-  username: string;
+  userName: string;
   userEmail: string;
   isAdmin?: boolean;
   isCosec?: boolean;
