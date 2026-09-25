@@ -46,5 +46,6 @@ builder.queryType({
 });
 
 import './types/people';
+import './types/bioOrg';
 
 export const schema = builder.toSchema();
