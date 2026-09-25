@@ -5,9 +5,9 @@ builder.prismaObject('Person', {
 	fields: (t: any) => ({
 		name: t.exposeString('name'),
 		surname: t.exposeString('surname'),
-		sciper: t.int('sciper'),
-		email: t.string('email'),
-		type: t.string()
+		sciper: t.exposeInt('sciper'),
+		email: t.exposeString('email'),
+		type: t.exposeString()
 	}),
 });
 
@@ -16,7 +16,7 @@ builder.queryType({
 		people: t.prismaField({
 			type: ['Person'],
 			resolve: async (query, root, args, ctx: any, info) => {
-				return await ctx.prisma.person.findMany();
+				return await ctx.prisma.Person.findMany();
 			},
 		}),
 	}),
