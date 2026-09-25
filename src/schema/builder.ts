@@ -5,13 +5,20 @@ import {prisma} from "./prisma";
 import ValidationPlugin from '@pothos/plugin-validation';
 import ScopeAuthPlugin from '@pothos/plugin-scope-auth';
 import {DateTimeResolver} from "graphql-scalars";
+import {UserInfo} from "../lib/userType";
 
 type BooleanKeys<T> = {
   [K in keyof T]-?: NonNullable<T[K]> extends boolean ? K : never
 }[keyof T];
 
+type Context = {
+  prisma: typeof prisma;
+  user: UserInfo;
+};
+
 export const builder = new SchemaBuilder<{
   PrismaTypes: PrismaTypes; // This gives the builder all the type information about your prisma schema
+  Context: Context;
   AuthScopes: {
     needPermission: BooleanKeys<UserInfo>;
   };
@@ -36,8 +43,8 @@ export const builder = new SchemaBuilder<{
     // when this is not set, auth checks are run when event is resolved rather than when the subscription is created
     authorizeOnSubscribe: true,
     // scope initializer, create the scopes and scope loaders for each request
-    authScopes: async (context: any) => ({
-      needPermission: (perm) => context.user[perm],
+    authScopes: async (context) => ({
+      needPermission: (perm) => !!context.user[perm],
     }),
   },
 });
