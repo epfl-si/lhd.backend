@@ -15,6 +15,9 @@ builder.queryType({
 	fields: (t) => ({
 		people: t.prismaField({
 			type: ['Person'],
+			authScopes: {
+				needPermission: 'canListPeople'
+			},
 			resolve: async (query, root, args, ctx: any, info) => {
 				return await ctx.prisma.Person.findMany();
 			},

@@ -27,7 +27,7 @@ UserRef.implement({
     canEditDispensations: t.exposeBoolean('canEditDispensations'),
     canListAssessments: t.exposeBoolean('canListAssessments'),
     canEditAssessments: t.exposeBoolean('canEditAssessments'),
-    canListPersons: t.exposeBoolean('canListPersons'),
+    canListPeople: t.exposeBoolean('canListPeople'),
     canListForms: t.exposeBoolean('canListForms'),
   }),
 });
