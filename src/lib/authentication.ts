@@ -1,6 +1,6 @@
 import {Request} from "express-serve-static-core";
 import {ParsedQs} from "qs";
-import * as jwt from 'jsonwebtoken';
+import jwt from 'jsonwebtoken'
 import jwksClient from 'jwks-rsa';
 import {UserInfo} from "./userType";
 
@@ -10,7 +10,7 @@ export function getBearerToken(req: Request<{}, any, any, ParsedQs, Record<strin
   else return matched[1];
 }
 
-export async function authenticateFromBearerToken(req: Request<{}, any, any, ParsedQs, Record<string, any>>): Promise<object> {
+export async function authenticateFromBearerToken(req: Request<{}, any, any, ParsedQs, Record<string, any>>): Promise<UserInfo> {
   const access_token = getBearerToken(req);
   if (!access_token) {
     throw new Error("Unauthorized");

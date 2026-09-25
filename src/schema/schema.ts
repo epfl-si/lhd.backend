@@ -1,4 +1,5 @@
 import {builder} from "./builder";
+import {UserInfo} from "../lib/userType";
 
 const UserRef = builder.objectRef<UserInfo>('User');
 UserRef.implement({
