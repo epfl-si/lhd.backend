@@ -26,9 +26,9 @@ const BioOrgRef = builder.prismaObject('BioOrg', {
 
 export function getBioOrgToString(parent: any) {
 	return {
-		id: parent.id_bio_org,
+		id: parent.idBioOrg,
 		organism: parent.organism,
-		risk_group: parent.risk_group,
+		riskGroup: parent.riskGroup,
 		filePath: parent.filePath
 	};
 }
