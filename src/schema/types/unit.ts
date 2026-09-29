@@ -73,6 +73,30 @@ const UnitListResult = builder.objectRef<{
 	}),
 });
 
+builder.queryType({
+	fields: (t) => ({
+		unitByName: t.prismaField({
+			type: 'Unit',
+			args: {
+				name: t.arg.string({required: true}),
+			},
+			validate: z.object({
+				name: z.string().regex(unitNameRegexp),
+			}),
+			authScopes: {
+				needPermission: 'canListUnits'
+			},
+			resolve: async (query, root, args, ctx: any, info) => {
+				return await ctx.prisma.Unit.findFirst({
+					where: {
+						name: args.name
+					}
+				});
+			},
+		}),
+	}),
+});
+
 builder.queryField('unitsFromFullTextAndPagination', (t) =>
 	t.field({
 		type: UnitListResult,
