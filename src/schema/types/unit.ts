@@ -4,6 +4,7 @@ import {UnitHasProfileRef} from "./unitHasProfile";
 import {z} from "zod";
 import {buildSearchConditions} from "../../lib/searchConditionBuilder";
 import {getUnitsFromApi} from "../../lib/callAPI";
+import {unitNameRegexp} from "../../lib/lhdValidators";
 
 const UnitRef = builder.prismaObject('Unit', {
 	name: 'Unit',
@@ -32,7 +33,15 @@ const UnitRef = builder.prismaObject('Unit', {
 					...query,
 					where: {
 						idUnit: parent.id,
-					}
+					},
+					orderBy: [
+						{
+							expirationDate: 'desc'
+						},
+						{
+							role: 'desc'
+						}
+					]
 				})
 			},
 		}),
