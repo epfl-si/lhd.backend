@@ -47,5 +47,9 @@ builder.queryType({
 
 import './types/people';
 import './types/bioOrg';
+import './types/unit';
+import './types/unitHasProfile';
+import './types/institute';
+import './types/school';
 
 export const schema = builder.toSchema();
