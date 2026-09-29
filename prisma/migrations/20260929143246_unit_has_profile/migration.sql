@@ -5,7 +5,8 @@ CREATE TYPE "Role" AS ENUM ('Cosec', 'Professor');
 CREATE TABLE "unit_has_profile" (
     "id_unit" INTEGER NOT NULL,
     "id_person" INTEGER NOT NULL,
-    "role" "Role" NOT NULL
+    "role" "Role" NOT NULL,
+    "expiration_date" DATE
 );
 
 -- CreateIndex

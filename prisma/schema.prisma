@@ -166,6 +166,7 @@ model UnitHasProfile {
   idUnit    Int @map("id_unit")
   idPerson  Int @map("id_person")
   role      Role
+  expirationDate   DateTime? @map("expiration_date") @db.Date
   unit      Unit   @relation(fields: [idUnit], references: [id], onUpdate: Restrict, map: "unit_has_profile_ibfk_1")
   person    Person @relation(fields: [idPerson], references: [idPerson], onUpdate: Restrict, map: "unit_has_profile_ibfk_2")
 
