@@ -141,6 +141,7 @@ model Person {
   subunpro                        Subunpro[]
   responsibleForUnits             Unit[]
   unitHasCosec                    UnitHasCosec[]
+  unitHasProfiles                 UnitHasProfile[]
 
   @@unique([name, surname, email], name: "unique_per", map: "unique_per")
   @@unique([sciper, name, surname, email], name: "unique_person", map: "unique_person")
@@ -161,6 +162,23 @@ model Subunpro {
   @@map("subunpro")
 }
 
+model UnitHasProfile {
+  idUnit    Int @map("id_unit")
+  idPerson  Int @map("id_person")
+  role      Role
+  unit      Unit   @relation(fields: [idUnit], references: [id], onUpdate: Restrict, map: "unit_has_profile_ibfk_1")
+  person    Person @relation(fields: [idPerson], references: [idPerson], onUpdate: Restrict, map: "unit_has_profile_ibfk_2")
+
+  @@unique([idUnit, idPerson, role], name: "unique_unit_has_profile", map: "unique_unit_has_profile")
+  @@index([idPerson])
+  @@map("unit_has_profile")
+}
+
+enum Role {
+  Cosec
+  Professor
+}
+
 model Unit {
   id                           Int                         @id @default(autoincrement()) @map("id_unit")
   unitId                       Int?                        @unique(map: "unique_sciper_unit") @map("sciper_unit")
@@ -175,6 +193,7 @@ model Unit {
   institute                    Institute?                  @relation(fields: [idInstitute], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "unit_ibfk_1")
   unitHasCosec                 UnitHasCosec[]
   unitHasRoom                  UnitHasRoom[]
+  unitHasProfiles              UnitHasProfile[]
 
   @@unique([name, idInstitute], name: "unique_un", map: "unique_un")
   @@unique([unitId, name, idInstitute], name: "unique_unit", map: "unique_unit")
@@ -321,7 +340,7 @@ model Authorization {
   renewals                  Int
   idUnit                    Int?                        @map("id_unit")
   expirationDate            DateTime?                   @map("expiration_date") @db.Date
-  status                    AuthorizationStatus
+  status                    authorization_status
   creationDate              DateTime                    @map("creation_date") @db.Date
   type                      String
   authority                 String?
@@ -579,7 +598,7 @@ model AssessmentDecisionHasUnit {
   @@map("assessment_and_decision_has_unit")
 }
 
-enum AuthorizationStatus {
+enum authorization_status {
   Active
   Expired
 }
