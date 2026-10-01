@@ -20,6 +20,11 @@ export async function deleteUnitCascade(tx: any, context: any, u:Unit) {
 			idUnit: u.id,
 		},
 	});
+	await tx.UnitHasCosec.deleteMany({
+		where: {
+			idUnit: u.id,
+		}
+	});
 
 	const subUnitList = await tx.Unit.findMany({
 		where: {

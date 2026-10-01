@@ -7,7 +7,7 @@ import {getUnitsFromApi} from "../../lib/callAPI";
 import {personNameRegexp, unitNameRegexp} from "../../lib/lhdValidators";
 import {findOrCreatePerson} from "../../model/persons";
 import {deleteUnitCascade, getUnitListBySearch} from "../../model/units";
-import {Role} from "../../../generated/prisma";
+import {Role, Unit} from "../../../generated/prisma";
 
 const UnitRef = builder.prismaObject('Unit', {
 	name: 'Unit',
@@ -111,6 +111,47 @@ const UnitInputType = builder.inputType('UnitInputType', {
 	}),
 });
 
+export const UnitCreationInput = builder.inputType('UnitCreationType', {
+	fields: (t) => ({
+		name: t.string({ required: true, validate: z.string().regex(unitNameRegexp) }),
+		unitId: t.int({ required: true, validate: z.number().int().min(10000) }),
+		responsibleId: t.int({ validate: z.number().int().min(1000) }),
+		path: t.string({ required: true, validate: z.string().regex(unitNameRegexp) }),
+		responsibleFirstName: t.string({ validate: z.string().regex(personNameRegexp) }),
+		responsibleLastName: t.string({ validate: z.string().regex(personNameRegexp) }),
+		responsibleEmail: t.string({ validate: z.email().nullish() }),
+	}),
+});
+
+const unitCreationArgs = builder.args((t) => ({
+	units: t.field({
+		type: [UnitCreationInput],
+		required: { list: true, items: true },
+	}),
+}));
+
+type UnitFromAPIShape = {
+	name?: string | null;
+	path?: string | null;
+	unitId?: string | null;
+	responsibleId?: string | null;
+	responsibleFirstName?: string | null;
+	responsibleLastName?: string | null;
+	responsibleEmail?: string | null;
+};
+
+const UnitsFromAPIResult = builder.objectRef<UnitFromAPIShape>('UnitsFromAPIResult').implement({
+	fields: (t) => ({
+		name: t.exposeString('name', { nullable: true }),
+		path: t.exposeString('path', { nullable: true }),
+		unitId: t.exposeString('unitId', { nullable: true }),
+		responsibleId: t.exposeString('responsibleId', { nullable: true }),
+		responsibleFirstName: t.exposeString('responsibleFirstName', { nullable: true }),
+		responsibleLastName: t.exposeString('responsibleLastName', { nullable: true }),
+		responsibleEmail: t.exposeString('responsibleEmail', { nullable: true })
+	}),
+});
+
 builder.queryType({
 	fields: (t) => ({
 		unitByName: t.prismaField({
@@ -129,33 +170,122 @@ builder.queryType({
 				});
 			},
 		}),
+		unitsFromFullTextAndPagination: t.field({
+			type: UnitListResult,
+			authScopes: {
+				needPermission: 'canListUnits'
+			},
+			args: {
+				search: t.arg.string({defaultValue: '', required: true}),
+				skip: t.arg.int({defaultValue: 0, required: true, validate: z.number().int().min(0)}),
+				take: t.arg.int({defaultValue: 20, required: true, validate: z.number().int().min(20)}),
+			},
+			resolve: async (root, args, ctx: any) => {
+				const unitList = await getUnitListBySearch(ctx, buildSearchConditions(args.search));
+
+				const units = args.take == 0 ? unitList : unitList.slice(args.skip, args.skip + args.take);
+				const totalCount = unitList.length;
+
+				return { units, totalCount };
+			},
+		}),
+		unitsFromAPI: t.field({
+			type: [UnitsFromAPIResult],
+			authScopes: {
+				needPermission: 'canListUnits'
+			},
+			args: {
+				search: t.arg.string({required: true}),
+			},
+			resolve: async (root, args, ctx: any) => {
+				const units = await getUnitsFromApi(args.search);
+				const unitList: UnitFromAPIShape[] = [];
+				units["units"].forEach((u: any) =>
+				{
+					unitList.push({
+						name: u.name,
+						path: u.path,
+						unitId: u.id,
+						responsibleId: u.responsibleid !== "" ? u.responsibleid : -1,
+						responsibleFirstName: u.responsible ? u.responsible.firstname : '',
+						responsibleLastName: u.responsible ? u.responsible.lastname : '',
+						responsibleEmail: u.responsible ? u.responsible.email : ''
+
+					});
+				});
+				return unitList;
+			},
+		})
 	}),
 });
 
-builder.queryField('unitsFromFullTextAndPagination', (t) =>
-	t.field({
-		type: UnitListResult,
-		authScopes: {
-			needPermission: 'canListUnits'
-		},
-		args: {
-			search: t.arg.string({defaultValue: '', required: true}),
-			skip: t.arg.int({defaultValue: 0, required: true, validate: z.number().int().min(0)}),
-			take: t.arg.int({defaultValue: 20, required: true, validate: z.number().int().min(20)}),
-		},
-		resolve: async (root, args, ctx: any) => {
-			const unitList = await getUnitListBySearch(ctx, buildSearchConditions(args.search));
-
-			const units = args.take == 0 ? unitList : unitList.slice(args.skip, args.skip + args.take);
-			const totalCount = unitList.length;
-
-			return { units, totalCount };
-		},
-	})
-);
-
 builder.mutationType({
 	fields: (t) => ({
+		createUnit: t.boolean({
+			authScopes: {
+				needPermission: 'canEditUnits'
+			},
+			args: unitCreationArgs,
+			resolve: async (root, args, ctx: any) => {
+				return await ctx.prisma.$transaction(async (tx: any) => {
+					for (const unit of args.units) {
+							const newUnit = await tx.Unit.findUnique({ where: { unitId: unit.unitId }});
+
+							if (!newUnit) {
+								const parts: string[] = unit.path.split(' ');
+								const instituteName: string = parts[2];
+								let institute = await tx.Institute.findFirst({where: { name: instituteName}});
+
+								if (!institute) {
+									const facultyName: string = parts[1];
+									let faculty = await tx.School.findFirst({where: { name: facultyName}});
+
+									if (!faculty) {
+										faculty = await tx.School.create({
+											data: {
+												name: facultyName,
+											}
+										});
+									}
+
+									institute = await tx.Institute.create({
+										data: {
+											name: instituteName,
+											id_school: faculty.id
+										}
+									});
+								}
+
+								let responsibleID = null;
+								if (unit.responsibleId) {
+									const responsible = await findOrCreatePerson(tx, unit.responsibleId, unit.responsibleFirstName ?? '', unit.responsibleLastName ?? '', unit.responsibleEmail ?? '');
+									responsibleID = responsible.idPerson;
+								}
+
+								const u = await tx.Unit.create({
+									data: {
+										name: unit.name,
+										unitId: unit.unitId,
+										idInstitute: institute.id,
+										responsibleId: responsibleID
+									}
+								});
+
+								if (responsibleID) {
+									await tx.UnitHasProfile.create({
+										data: {
+											idPerson: responsibleID,
+											idUnit: u.id,
+											role: Role.Professor
+										}
+									});
+								}
+							}
+					}
+					return true;
+				});
+			},
+		}),
 		updateUnit: t.string({
 			authScopes: {
 				needPermission: 'canEditUnits'
@@ -231,5 +361,24 @@ builder.mutationType({
 				});
 			},
 		}),
+		deleteUnit: t.field({
+			type: 'Boolean',
+			authScopes: {
+				needPermission: 'canEditUnits'
+			},
+			args: {
+				opLock: t.arg.string({required: true})
+			},
+			resolve: async (root, args, ctx: any) => {
+				return await ctx.prisma.$transaction(async (tx: any) => {
+					const unit = await OptimisticLock.ensureDBObjectIsTheSame(args.opLock,
+						'Unit', 'id',
+						tx, 'Unit', getUnitToString);
+
+					await deleteUnitCascade(tx, ctx, unit);
+					return true;
+				});
+			},
+		})
 	}),
 });
