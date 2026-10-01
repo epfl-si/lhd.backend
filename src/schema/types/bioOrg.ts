@@ -57,42 +57,39 @@ builder.queryType({
 				return await ctx.prisma.BioOrg.findMany();
 			},
 		}),
+		organismsFromFullText: t.field({
+			type: BioOrgListResult,
+			args: {
+				search: t.arg.string({defaultValue: '', required: true}),
+				skip: t.arg.int({defaultValue: 0, required: true}),
+				take: t.arg.int({defaultValue: 20, required: true}),
+			},
+			validate: z.object({
+				search: z.string().optional(),
+				skip: z.number().int().nonnegative().optional(),
+				take: z.number().int().nonnegative().optional()
+			}),
+			authScopes: {
+				needPermission: 'canListOrganisms'
+			},
+			resolve: async (root, args, ctx: any) => {
+				const bioList =  await ctx.prisma.BioOrg.findMany({
+					where: { organism: buildSearchConditions(args.search) },
+					orderBy: [
+						{
+							organism: 'asc',
+						},
+					]
+				});
+
+				const bios = args.take == 0 ? bioList : bioList.slice(args.skip, args.skip + args.take);
+				const totalCount = bioList.length;
+
+				return { bios, totalCount };
+			},
+		})
 	}),
 });
-
-builder.queryField('organismsFromFullText', (t) =>
-	t.field({
-		type: BioOrgListResult,
-		args: {
-			search: t.arg.string({defaultValue: '', required: true}),
-			skip: t.arg.int({defaultValue: 0, required: true}),
-			take: t.arg.int({defaultValue: 20, required: true}),
-		},
-		validate: z.object({
-			search: z.string().optional(),
-			skip: z.number().int().nonnegative().optional(),
-			take: z.number().int().nonnegative().optional()
-		}),
-		authScopes: {
-			needPermission: 'canListOrganisms'
-		},
-		resolve: async (root, args, ctx: any) => {
-			const bioList =  await ctx.prisma.BioOrg.findMany({
-				where: { organism: buildSearchConditions(args.search) },
-				orderBy: [
-					{
-						organism: 'asc',
-					},
-				]
-			});
-
-			const bios = args.take == 0 ? bioList : bioList.slice(args.skip, args.skip + args.take);
-			const totalCount = bioList.length;
-
-			return { bios, totalCount };
-		},
-	})
-);
 
 builder.mutationType({
 	fields: (t) => ({
