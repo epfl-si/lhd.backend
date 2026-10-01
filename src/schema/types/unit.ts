@@ -4,7 +4,7 @@ import {UnitHasProfileRef} from "./unitHasProfile";
 import {z} from "zod";
 import {buildSearchConditions} from "../../lib/searchConditionBuilder";
 import {getUnitsFromApi} from "../../lib/callAPI";
-import {personNameRegexp, unitNameRegexp} from "../../lib/lhdValidators";
+import {opLockValidator, personNameRegexp, unitNameRegexp, validateOpLock} from "../../lib/lhdValidators";
 import {findOrCreatePerson} from "../../model/persons";
 import {deleteUnitCascade, getUnitListBySearch} from "../../model/units";
 import {Role, Unit} from "../../../generated/prisma";
@@ -291,7 +291,7 @@ builder.mutationType({
 				needPermission: 'canEditUnits'
 			},
 			args: {
-				opLock: t.arg.string({required: true}),
+				opLock: t.arg.string({required: true, validate: opLockValidator}),
 				profiles: t.arg({
 					type: [ProfileInputType],
 					required: { list: true, items: true },
@@ -367,7 +367,7 @@ builder.mutationType({
 				needPermission: 'canEditUnits'
 			},
 			args: {
-				opLock: t.arg.string({required: true})
+				opLock: t.arg.string({required: true, validate: opLockValidator})
 			},
 			resolve: async (root, args, ctx: any) => {
 				return await ctx.prisma.$transaction(async (tx: any) => {

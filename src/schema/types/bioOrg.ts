@@ -2,10 +2,12 @@ import {builder} from "../builder";
 import {OptimisticLock} from "../../lib/optimisticLock";
 import {z} from "zod";
 import {buildSearchConditions} from "../../lib/searchConditionBuilder";
-import {fileNameRegexp, organismRegexp} from "../../lib/lhdValidators";
+import {fileNameRegexp, opLockValidator, organismRegexp, validateOpLock} from "../../lib/lhdValidators";
 import {sanitizeBase64DataUrl} from "../../lib/fieldValidatePlugin";
 import {getUserString} from "../../lib/userType";
 import {saveBase64File} from "../../lib/fileUtilities";
+import {getUserInfoFromAPI} from "../../lib/callAPI";
+import {updateBioOrg} from "../../model/hazardChild";
 
 const BioOrgRef = builder.prismaObject('BioOrg', {
 	name: 'BioOrg',
@@ -137,6 +139,70 @@ builder.mutationType({
 
 					return organism.organism;
 				});
+			},
+		}),
+		updateOrganism: t.string({
+			authScopes: {
+				needPermission: 'canEditOrganisms'
+			},
+			args: {
+				opLock: t.arg.string({required: true}),
+				organismName: t.arg.string({required: true}),
+				risk: t.arg.int({required: true}),
+				fileContent: t.arg.string(),
+				fileName: t.arg.string(),
+			},
+			validate: z.object({
+				opLock: opLockValidator,
+				organismName: z.string().regex(organismRegexp),
+				risk: z.number().int().lte(3).gte(1),
+				fileContent: z.string().optional().refine(
+					(value) => value === undefined || sanitizeBase64DataUrl(value), {
+						message: 'Invalid file content',
+					}
+				),
+				fileName: z.string().regex(fileNameRegexp).optional(),
+			}),
+			resolve: async (root, args, ctx: any) => {
+				const userInfo = await getUserInfoFromAPI(ctx.user.username);
+				return await ctx.prisma.$transaction(async (tx: any) => {
+					const org = await OptimisticLock.ensureDBObjectIsTheSame(args.opLock,
+						'BioOrg', 'idBioOrg',
+						tx, args.organismName, getBioOrgToString);
+
+					const updatedOrganism = await tx.bio_org.update(
+						{ where: { idBioOrg: org.idBioOrg },
+							data: {
+								organism: args.organismName,
+								riskGroup: args.risk,
+								updatedOn: new Date(),
+								updatedBy: `${userInfo.userFullName} (${userInfo.sciper})`,
+								filePath: args.fileContent && args.fileName ? saveBase64File(args.fileContent, 'd_bio/' + org.idBioOrg + '/', args.fileName) : null
+							}
+						});
+
+					await updateBioOrg(tx, org.organism, updatedOrganism);
+					return org.organism;
+				});
+			},
+		}),
+		deleteOrganism: t.string({
+			authScopes: {
+				needPermission: 'canEditOrganisms'
+			},
+			args: {
+				opLock: t.arg.string({required: true, validate: opLockValidator}),
+			},
+			resolve: async (root, args, ctx: any) => {
+				return await ctx.prisma.$transaction(async (tx: any) => {
+					const org = await OptimisticLock.ensureDBObjectIsTheSame(args.opLock,
+						'BioOrg', 'idBioOrg',
+						tx, 'Organism', getBioOrgToString);
+
+					await tx.BioOrg.delete({ where: { idBioOrg: org.idBioOrg }});
+
+					return true;
+					})
 			},
 		}),
 	}),
