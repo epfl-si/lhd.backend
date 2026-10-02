@@ -2,12 +2,9 @@ import {builder} from "../builder";
 import {OptimisticLock} from "../../lib/optimisticLock";
 import {z} from "zod";
 import {buildSearchConditions} from "../../lib/searchConditionBuilder";
-import {fileNameRegexp, opLockValidator, organismRegexp, validateOpLock} from "../../lib/lhdValidators";
+import {fileNameRegexp, opLockValidator, organismRegexp} from "../../lib/lhdValidators";
 import {sanitizeBase64DataUrl} from "../../lib/fieldValidatePlugin";
-import {getUserString} from "../../lib/userType";
-import {saveBase64File} from "../../lib/fileUtilities";
-import {getUserInfoFromAPI} from "../../lib/callAPI";
-import {updateBioOrg} from "../../model/hazardChild";
+import {createBioOrg, deleteBioOrg, getBioOrgByName, updateBioOrg, updateBioOrgInHazards} from "../../model/bioOrg";
 
 const BioOrgRef = builder.prismaObject('BioOrg', {
 	name: 'BioOrg',
@@ -20,7 +17,7 @@ const BioOrgRef = builder.prismaObject('BioOrg', {
 		opLock: t.field({
 			type: 'String',
 			resolve: async (parent: any, _: any, context: any) => {
-				return OptimisticLock.createOpLock(parent.id_bio_org, getBioOrgToString(parent));
+				return OptimisticLock.createOpLock(parent.idBioOrg, getBioOrgToString(parent));
 			},
 		})
 	}),
@@ -33,6 +30,10 @@ export function getBioOrgToString(parent: any) {
 		riskGroup: parent.riskGroup,
 		filePath: parent.filePath
 	};
+}
+
+export async function getOriginalObject (tx: any, opLock: string, name: string) {
+	return await OptimisticLock.ensureDBObjectIsTheSame(opLock, 'BioOrg', 'idBioOrg', tx, name, getBioOrgToString);
 }
 
 const BioOrgListResult = builder.objectRef<{
@@ -75,14 +76,7 @@ builder.queryType({
 				needPermission: 'canListOrganisms'
 			},
 			resolve: async (root, args, ctx: any) => {
-				const bioList =  await ctx.prisma.BioOrg.findMany({
-					where: { organism: buildSearchConditions(args.search) },
-					orderBy: [
-						{
-							organism: 'asc',
-						},
-					]
-				});
+				const bioList = await getBioOrgByName(ctx, args.search);
 
 				const bios = args.take == 0 ? bioList : bioList.slice(args.skip, args.skip + args.take);
 				const totalCount = bioList.length;
@@ -117,26 +111,8 @@ builder.mutationType({
 			}),
 			resolve: async (root, args, ctx: any) => {
 				return await ctx.prisma.$transaction(async (tx: any) => {
-					const organism = await tx.BioOrg.create({
-						data: {
-							organism: args.organismName,
-							riskGroup: args.risk,
-							updatedOn: new Date(),
-							updatedBy: getUserString(ctx.user),
-						}
-					});
-
-					if (args.fileContent && args.fileName) {
-						await tx.BioOrg.update({
-							data: {
-								filePath: saveBase64File(args.fileContent, 'd_bio/' + organism.idBioOrg + '/', args.fileName)
-							},
-							where: {
-								idBioOrg: organism.idBioOrg
-							}
-						});
-					}
-
+					const organism = await createBioOrg(tx, ctx.user, args.organismName, args.risk);
+					await updateBioOrg(tx, organism.idBioOrg, ctx.user, args.organismName, args.risk, args.fileContent, args.fileName);
 					return organism.organism;
 				});
 			},
@@ -164,24 +140,10 @@ builder.mutationType({
 				fileName: z.string().regex(fileNameRegexp).optional(),
 			}),
 			resolve: async (root, args, ctx: any) => {
-				const userInfo = await getUserInfoFromAPI(ctx.user.username);
 				return await ctx.prisma.$transaction(async (tx: any) => {
-					const org = await OptimisticLock.ensureDBObjectIsTheSame(args.opLock,
-						'BioOrg', 'idBioOrg',
-						tx, args.organismName, getBioOrgToString);
-
-					const updatedOrganism = await tx.bio_org.update(
-						{ where: { idBioOrg: org.idBioOrg },
-							data: {
-								organism: args.organismName,
-								riskGroup: args.risk,
-								updatedOn: new Date(),
-								updatedBy: `${userInfo.userFullName} (${userInfo.sciper})`,
-								filePath: args.fileContent && args.fileName ? saveBase64File(args.fileContent, 'd_bio/' + org.idBioOrg + '/', args.fileName) : null
-							}
-						});
-
-					await updateBioOrg(tx, org.organism, updatedOrganism);
+					const org = await getOriginalObject(tx, args.opLock, args.organismName);
+					const updatedOrganism = await updateBioOrg(tx, org.idBioOrg, ctx.user, args.organismName, args.risk, args.fileContent, args.fileName);
+					await updateBioOrgInHazards(tx, org.organism, updatedOrganism);
 					return org.organism;
 				});
 			},
@@ -195,12 +157,8 @@ builder.mutationType({
 			},
 			resolve: async (root, args, ctx: any) => {
 				return await ctx.prisma.$transaction(async (tx: any) => {
-					const org = await OptimisticLock.ensureDBObjectIsTheSame(args.opLock,
-						'BioOrg', 'idBioOrg',
-						tx, 'Organism', getBioOrgToString);
-
-					await tx.BioOrg.delete({ where: { idBioOrg: org.idBioOrg }});
-
+					const org = await getOriginalObject(tx, args.opLock, 'Organism');
+					await deleteBioOrg(tx, org.idBioOrg);
 					return true;
 					})
 			},

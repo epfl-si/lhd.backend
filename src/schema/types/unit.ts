@@ -4,9 +4,19 @@ import {UnitHasProfileRef} from "./unitHasProfile";
 import {z} from "zod";
 import {buildSearchConditions} from "../../lib/searchConditionBuilder";
 import {getUnitsFromApi} from "../../lib/callAPI";
-import {opLockValidator, personNameRegexp, unitNameRegexp, validateOpLock} from "../../lib/lhdValidators";
+import {opLockValidator, personNameRegexp, unitNameRegexp} from "../../lib/lhdValidators";
 import {findOrCreatePerson} from "../../model/persons";
-import {deleteUnitCascade, getUnitListBySearch} from "../../model/units";
+import {
+	createInstitute,
+	createSchool, createUnit,
+	deleteUnitCascade, findInstituteByName, findSchoolByName,
+	findSingleUnitByName,
+	findUniqueUnit,
+	getUnitListBySearch,
+	updateProfiles,
+	updateSubUnits,
+	updateUnit
+} from "../../model/units";
 import {Role, Unit} from "../../../generated/prisma";
 
 const UnitRef = builder.prismaObject('Unit', {
@@ -70,6 +80,12 @@ export function getUnitToString(parent: any) {
 		name: parent.name,
 		idInstitute: parent.idInstitute
 	};
+}
+
+export async function getOriginalObject (tx: any, opLock: string, name: string) {
+	return await OptimisticLock.ensureDBObjectIsTheSame(opLock,
+		'Unit', 'id',
+		tx, name, getUnitToString);
 }
 
 const UnitListResult = builder.objectRef<{
@@ -163,11 +179,7 @@ builder.queryType({
 				name: t.arg.string({required: true, validate: z.string().regex(unitNameRegexp)}),
 			},
 			resolve: async (query, root, args, ctx: any, info) => {
-				return await ctx.prisma.Unit.findFirst({
-					where: {
-						name: args.name
-					}
-				});
+				return await findSingleUnitByName(ctx, args.name);
 			},
 		}),
 		unitsFromFullTextAndPagination: t.field({
@@ -229,31 +241,19 @@ builder.mutationType({
 			resolve: async (root, args, ctx: any) => {
 				return await ctx.prisma.$transaction(async (tx: any) => {
 					for (const unit of args.units) {
-							const newUnit = await tx.Unit.findUnique({ where: { unitId: unit.unitId }});
-
+							const newUnit = await findUniqueUnit(tx, unit.unitId);
 							if (!newUnit) {
 								const parts: string[] = unit.path.split(' ');
 								const instituteName: string = parts[2];
-								let institute = await tx.Institute.findFirst({where: { name: instituteName}});
+								let institute = await findInstituteByName(tx, instituteName);
 
 								if (!institute) {
 									const facultyName: string = parts[1];
-									let faculty = await tx.School.findFirst({where: { name: facultyName}});
-
+									let faculty = await findSchoolByName(tx, facultyName);
 									if (!faculty) {
-										faculty = await tx.School.create({
-											data: {
-												name: facultyName,
-											}
-										});
+										faculty = await createSchool(tx, facultyName);
 									}
-
-									institute = await tx.Institute.create({
-										data: {
-											name: instituteName,
-											id_school: faculty.id
-										}
-									});
+									institute = await createInstitute(tx, instituteName, faculty.id)
 								}
 
 								let responsibleID = null;
@@ -262,24 +262,7 @@ builder.mutationType({
 									responsibleID = responsible.idPerson;
 								}
 
-								const u = await tx.Unit.create({
-									data: {
-										name: unit.name,
-										unitId: unit.unitId,
-										idInstitute: institute.id,
-										responsibleId: responsibleID
-									}
-								});
-
-								if (responsibleID) {
-									await tx.UnitHasProfile.create({
-										data: {
-											idPerson: responsibleID,
-											idUnit: u.id,
-											role: Role.Professor
-										}
-									});
-								}
+								await createUnit(tx, unit.name, unit.unitId, institute.id, responsibleID);
 							}
 					}
 					return true;
@@ -304,59 +287,12 @@ builder.mutationType({
 			},
 			resolve: async (root, args, ctx: any) => {
 				return await ctx.prisma.$transaction(async (tx: any) => {
-					const unit = await OptimisticLock.ensureDBObjectIsTheSame(args.opLock,
-						'Unit', 'id',
-						tx, args.unit, getUnitToString);
-
+					const unit = await getOriginalObject(tx, args.opLock, args.unit);
 					if (!unit.unitId) {
-						await tx.Unit.update(
-							{ where: { id: unit.id },
-								data: {
-									name: args.unit
-								}
-							});
+						await updateUnit(tx, unit.id, args.unit);
 					}
-
-					for (const person of args.profiles) {
-						if (person.status === 'New') {
-							const p = await findOrCreatePerson(tx, person.person.sciper, person.person.name, person.person.surname, person.person.email);
-							await tx.UnitHasProfile.create({
-								data: {
-									idPerson: p.idPerson,
-									idUnit: unit.id,
-									role: person.role,
-									expirationDate: person.expirationDate ? new Date(person.expirationDate) : null
-								}
-							});
-						}
-						else if (person.status === 'Deleted') {
-							let p = await tx.Person.findUnique({ where: { sciper: person.person.sciper }});
-							if (!p) continue;
-							await tx.UnitHasProfile.deleteMany({
-								where: {
-									idUnit: unit.id,
-									idPerson: p.idPerson,
-									role: person.role
-								}
-							});
-						}
-					}
-
-					for (const subunit of args.subUnits) {
-						if (subunit.status === 'New') {
-							await tx.Unit.create({
-								data: {
-									name: subunit.name,
-									idInstitute: unit.idInstitute
-								}
-							});
-						}
-						else if (subunit.status === 'Deleted') {
-							const u = await tx.Unit.findFirst({ where: { name: subunit.name }});
-							if (u) await deleteUnitCascade(tx, ctx, u);
-						}
-					}
-
+					await updateProfiles(tx, args.profiles, unit.id);
+					await updateSubUnits(tx, ctx, args.subUnits, unit.idInstitute);
 					return unit.name;
 				});
 			},
@@ -371,11 +307,8 @@ builder.mutationType({
 			},
 			resolve: async (root, args, ctx: any) => {
 				return await ctx.prisma.$transaction(async (tx: any) => {
-					const unit = await OptimisticLock.ensureDBObjectIsTheSame(args.opLock,
-						'Unit', 'id',
-						tx, 'Unit', getUnitToString);
-
-					await deleteUnitCascade(tx, ctx, unit);
+					const unit = await getOriginalObject(tx, args.opLock, "Unit");
+					await deleteUnitCascade(tx, unit);
 					return true;
 				});
 			},

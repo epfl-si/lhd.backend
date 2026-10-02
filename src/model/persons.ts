@@ -37,3 +37,14 @@ export async function ensurePerson(prisma: any, persons: any) {
 		}
 	}
 }
+
+export async function findPersonByName (ctx: any, search: string) {
+	return await ctx.prisma.Person.findMany({
+		where: {
+			OR: [
+				{ name: { contains: search }},
+				{ surname : { contains: search }},
+			]
+		}
+	});
+}

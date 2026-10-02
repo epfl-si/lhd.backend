@@ -1,5 +1,6 @@
 import {builder} from "../builder";
 import {getUsersFromApi} from "../../lib/callAPI";
+import {findPersonByName} from "../../model/persons";
 
 builder.prismaObject('Person', {
 	name: 'Person',
@@ -50,14 +51,7 @@ builder.queryType({
 				lhdOnly: t.arg.boolean({defaultValue: false}),
 			},
 			resolve: async (root, args, ctx: any) => {
-				const lhdPeople = await ctx.prisma.Person.findMany({
-					where: {
-						OR: [
-							{ name: { contains: args.search }},
-							{ surname : { contains: args.search }},
-						]
-					}
-				});
+				const lhdPeople = await findPersonByName(ctx, args.search);
 				const lhdPeopleTyped = lhdPeople.map((p: any) => ({
 					type: 'Person',
 					name: p.name,
