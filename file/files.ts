@@ -1,5 +1,4 @@
-import express from "express";
-import {Request} from "express";
+import express, {Request} from "express";
 import {OpLock} from "../src/lib/optimisticLock";
 import {getBioOrgOriginalObject} from "../src/schema/types/bioOrg";
 import {authenticateFromBearerToken} from "../src/lib/authentication";
@@ -7,7 +6,10 @@ import {checkAPICall} from "../api/lib/checkedAPICalls";
 import {sendFileResponse} from "../src/lib/fileUtilities";
 import {errorHandler} from "../api/lib/errorHandler";
 import {setReqPrismaMiddleware} from "../api/lib/rest";
-import {obfuscatedIdValidators} from "../src/lib/lhdValidators";
+import {obfuscatedIdValidators, pathRegexp} from "../src/lib/lhdValidators";
+import {getDispensationOriginalObject} from "../src/schema/types/dispensation/dispensation";
+import {getAuthorizationOriginalObject} from "../src/schema/types/authorization/authorization";
+import {getAssessmentDecisionOriginalObject} from "../src/schema/types/assessment/assessmentDecision";
 
 const obfuscatedIdParams = {
 	eph_id (req: any) { return req.params.eph_id },
@@ -39,6 +41,62 @@ export function makeRESTFilesAPI() {
 			sendFileResponse(org.filePath, res);
 		});
 
+	app.get("/dispensation/:eph_id",
+		checkAPICall(
+			{
+				authorize: (req) => req.user.canListDispensations,
+				required: {
+					...obfuscatedIdParams,
+					fileName (req) { return req.query.fileName }
+				},
+				validate: {
+					...obfuscatedIdValidators,
+					fileName: pathRegexp
+				}
+			}),
+		async (req: Request<GetFile>, res) => {
+			const opLock: OpLock = {salt: req.params.salt, eph_id: req.params.eph_id};
+			await getDispensationOriginalObject(req.prisma, JSON.stringify(opLock), 'Dispensation');
+			sendFileResponse(req.params.fileName!, res);
+		});
+
+	app.get("/authorization/:eph_id",
+		checkAPICall(
+			{
+				authorize: (req) => req.user.canListAuthorizations,
+				required: {
+					...obfuscatedIdParams,
+					fileName (req) { return req.query.fileName }
+				},
+				validate: {
+					...obfuscatedIdValidators,
+					fileName: pathRegexp
+				}
+			}),
+		async (req: Request<GetFile>, res) => {
+			const opLock: OpLock = {salt: req.params.salt, eph_id: req.params.eph_id};
+			await getAuthorizationOriginalObject(req.prisma, JSON.stringify(opLock), 'Authorization');
+			sendFileResponse(req.params.fileName!, res);
+		});
+
+	app.get("/assessment/:eph_id",
+		checkAPICall(
+			{
+				authorize: (req) => req.user.canListAssessments,
+				required: {
+					...obfuscatedIdParams,
+					fileName (req) { return req.query.fileName }
+				},
+				validate: {
+					...obfuscatedIdValidators,
+					fileName: pathRegexp
+				}
+			}),
+		async (req: Request<GetFile>, res) => {
+			const opLock: OpLock = {salt: req.params.salt, eph_id: req.params.eph_id};
+			await getAssessmentDecisionOriginalObject(req.prisma, JSON.stringify(opLock), 'AssessmentDecision');
+			sendFileResponse(req.params.fileName!, res);
+		});
 	app.use(errorHandler);
 
 	return app;
