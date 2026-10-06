@@ -82,7 +82,7 @@ export function getUnitToString(parent: any) {
 	};
 }
 
-export async function getOriginalObject (tx: any, opLock: string, name: string) {
+export async function getUnitOriginalObject (tx: any, opLock: string, name: string) {
 	return await OptimisticLock.ensureDBObjectIsTheSame(opLock,
 		'Unit', 'id',
 		tx, name, getUnitToString);
@@ -287,7 +287,7 @@ builder.mutationType({
 			},
 			resolve: async (root, args, ctx: any) => {
 				return await ctx.prisma.$transaction(async (tx: any) => {
-					const unit = await getOriginalObject(tx, args.opLock, args.unit);
+					const unit = await getUnitOriginalObject(tx, args.opLock, args.unit);
 					if (!unit.unitId) {
 						await updateUnit(tx, unit.id, args.unit);
 					}
@@ -307,7 +307,7 @@ builder.mutationType({
 			},
 			resolve: async (root, args, ctx: any) => {
 				return await ctx.prisma.$transaction(async (tx: any) => {
-					const unit = await getOriginalObject(tx, args.opLock, "Unit");
+					const unit = await getUnitOriginalObject(tx, args.opLock, "Unit");
 					await deleteUnitCascade(tx, unit);
 					return true;
 				});

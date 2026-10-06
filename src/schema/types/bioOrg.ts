@@ -32,7 +32,7 @@ export function getBioOrgToString(parent: any) {
 	};
 }
 
-export async function getOriginalObject (tx: any, opLock: string, name: string) {
+export async function getBioOrgOriginalObject (tx: any, opLock: string, name: string) {
 	return await OptimisticLock.ensureDBObjectIsTheSame(opLock, 'BioOrg', 'idBioOrg', tx, name, getBioOrgToString);
 }
 
@@ -141,7 +141,7 @@ builder.mutationType({
 			}),
 			resolve: async (root, args, ctx: any) => {
 				return await ctx.prisma.$transaction(async (tx: any) => {
-					const org = await getOriginalObject(tx, args.opLock, args.organismName);
+					const org = await getBioOrgOriginalObject(tx, args.opLock, args.organismName);
 					const updatedOrganism = await updateBioOrg(tx, org.idBioOrg, ctx.user, args.organismName, args.risk, args.fileContent, args.fileName);
 					await updateBioOrgInHazards(tx, org.organism, updatedOrganism);
 					return org.organism;
@@ -157,7 +157,7 @@ builder.mutationType({
 			},
 			resolve: async (root, args, ctx: any) => {
 				return await ctx.prisma.$transaction(async (tx: any) => {
-					const org = await getOriginalObject(tx, args.opLock, 'Organism');
+					const org = await getBioOrgOriginalObject(tx, args.opLock, 'Organism');
 					await deleteBioOrg(tx, org.idBioOrg);
 					return true;
 					})
