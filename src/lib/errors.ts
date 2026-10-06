@@ -14,7 +14,7 @@ const wellKnowsErrors: Record<string, string> = {
  * @param formattedError passed to the Apollo formatError callback: https://www.apollographql.com/docs/apollo-server/data/errors#for-client-responses
  * @param error The original exception
  */
-export function formatPrismaError(formattedError: any, error: { originalError: { code: any; }; message: any; httpCode: number; }) {
+export function getFormattedError(error: { originalError: { code: any; }; message: any; httpCode: number; }, formattedError: any = undefined) {
   const errorCode: string = (error?.originalError?.code || formattedError?.extensions?.code || formattedError?.code) as string;
   const errorMessage = errorCode in wellKnowsErrors ? wellKnowsErrors[errorCode] : (error.message || 'Internal Server Error');
   const httpCode = error.httpCode ?? (errorMessage === 'Unauthorized' || errorMessage.indexOf('Not authorized to resolve') > -1 ? 403 : 500);
