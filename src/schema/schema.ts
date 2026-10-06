@@ -51,5 +51,17 @@ import './types/unit';
 import './types/unitHasProfile';
 import './types/institute';
 import './types/school';
+import './types/dispensation/dispensation';
+import './types/dispensation/files';
+import './types/dispensation/subject';
+import './types/dispensation/ticket';
+import './types/authorization/authorization';
+import './types/authorization/files';
+import './types/authorization/chemicals';
+import './types/authorization/radiation';
+import './types/assessment/assessmentDecision';
+import './types/assessment/files';
+import './types/assessment/subject';
+import './types/assessment/ticket';
 
 export const schema = builder.toSchema();

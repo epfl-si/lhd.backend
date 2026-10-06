@@ -1,10 +1,10 @@
 import {builder} from "../builder";
 import {OptimisticLock} from "../../lib/optimisticLock";
 import {z} from "zod";
-import {buildSearchConditions} from "../../lib/searchConditionBuilder";
 import {fileNameRegexp, opLockValidator, organismRegexp} from "../../lib/lhdValidators";
 import {sanitizeBase64DataUrl} from "../../lib/fieldValidatePlugin";
 import {createBioOrg, deleteBioOrg, getBioOrgByName, updateBioOrg, updateBioOrgInHazards} from "../../model/bioOrg";
+import {BioOrg} from "../../../generated/prisma";
 
 const BioOrgRef = builder.prismaObject('BioOrg', {
 	name: 'BioOrg',
@@ -23,7 +23,7 @@ const BioOrgRef = builder.prismaObject('BioOrg', {
 	}),
 });
 
-export function getBioOrgToString(parent: any) {
+export function getBioOrgToString(parent: BioOrg) {
 	return {
 		id: parent.idBioOrg,
 		organism: parent.organism,

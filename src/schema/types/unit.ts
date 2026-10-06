@@ -19,7 +19,7 @@ import {
 } from "../../model/units";
 import {Role, Unit} from "../../../generated/prisma";
 
-const UnitRef = builder.prismaObject('Unit', {
+export const UnitRef = builder.prismaObject('Unit', {
 	name: 'Unit',
 	fields: (t: any) => ({
 		name: t.exposeString('name'),
@@ -73,7 +73,7 @@ const UnitRef = builder.prismaObject('Unit', {
 	}),
 });
 
-export function getUnitToString(parent: any) {
+export function getUnitToString(parent: Unit) {
 	return {
 		id: parent.id,
 		unitId: parent.unitId,
