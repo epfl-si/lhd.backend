@@ -22,6 +22,7 @@ export const RoomRef = builder.prismaObject('Room', {
 		vent: t.exposeString('vent'),
 		name: t.exposeString('name'),
 		isDeleted: t.exposeBoolean('isDeleted'),
+		kind: t.relation('kind'),
 		labTypeIsDifferent: t.exposeBoolean('labTypeIsDifferent'),
 		vol: t.exposeFloat('vol'),
 		opLock: t.string({

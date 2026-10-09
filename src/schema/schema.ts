@@ -75,5 +75,6 @@ import './types/hazards/hazardsAdditionalInfo';
 import './types/hazards/labHazardChild';
 import './types/hazards/tag';
 import './types/room';
+import './types/roomKind';
 
 export const schema = builder.toSchema();
