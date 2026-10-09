@@ -1,15 +1,12 @@
 import {LabHasHazardsAdditionalInfo} from "../../../../generated/prisma";
 import {OptimisticLock} from "../../../lib/optimisticLock";
 import {builder} from "../../builder";
-import {HazardCategoryRef} from "./hazardCategory";
-import {HazardsAdditionalInfoHasTagRef} from "./hazardAdditionalInfoHasTag";
-import {FileAdditionalInfoRef} from "./hazardAdditionalInfoFile";
 
 export const HazardsAdditionalInfoRef = builder.prismaObject('LabHasHazardsAdditionalInfo', {
 	name: 'LabHasHazardsAdditionalInfo',
 	fields: (t: any) => ({
 		comment: t.exposeString('comment'),
-		modified_by: t.exposeString('modified_by'),
+		modifiedBy: t.exposeString('modifiedBy'),
 		modifiedOn: t.expose('modifiedOn', { type: 'DateTime' }),
 		opLock: t.string({
 			resolve: async (parent: any, _: any, context: any) => {
