@@ -63,5 +63,17 @@ import './types/assessment/assessmentDecision';
 import './types/assessment/files';
 import './types/assessment/subject';
 import './types/assessment/ticket';
+import './types/hazards/labHazard';
+import './types/hazards/hazardAdditionalInfoFile';
+import './types/hazards/hazardAdditionalInfoHasTag';
+import './types/hazards/hazardCategory';
+import './types/hazards/hazardForm';
+import './types/hazards/hazardFormChild';
+import './types/hazards/hazardFormChildHistory';
+import './types/hazards/hazardFormHistory';
+import './types/hazards/hazardsAdditionalInfo';
+import './types/hazards/labHazardChild';
+import './types/hazards/tag';
+import './types/room';
 
 export const schema = builder.toSchema();
