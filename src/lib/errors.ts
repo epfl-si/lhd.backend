@@ -20,3 +20,12 @@ export function getFormattedError(error: { originalError: { code: any; }; messag
   const httpCode = error.httpCode ?? (errorMessage === 'Unauthorized' || errorMessage.indexOf('Not authorized to resolve') > -1 ? 403 : 500);
   return {errorCode, errorMessage, httpCode};
 }
+
+export class NotFoundError extends Error {
+  public httpCode: number;
+
+  constructor(...args: any) {
+    super(...args);
+    this.httpCode = 404;
+  }
+}

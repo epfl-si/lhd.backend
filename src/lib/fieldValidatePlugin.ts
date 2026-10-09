@@ -20,3 +20,65 @@ export function sanitizeBase64DataUrl(value: string) {
 
 	return true;
 }
+
+export function sanitizeObject (obj: any, spec: {[k: string]: {	rename ?: string,
+		validate?: RegExp | ((value: string) => any) | {enum: string[]},
+		optional?: boolean
+	}}) {
+	const ret: any = {};
+	const errors: any[] = [];
+
+	const objKeys = Object.keys(obj);
+	objKeys.forEach(key => {
+		if (! spec[key]) return;  // key is now trusted
+
+		const validator = spec[key].validate;
+		const renamedKey = spec[key].rename ?? key;
+		if (validator) {
+			if (spec[key].optional && !obj[key]) return;  // No error, the field is undefined as it's optional
+
+			if (validator instanceof RegExp) {
+				const matched = obj[key].match(validator)
+				if (matched) {
+					ret[renamedKey] = matched[0];
+				} else {
+					errors.push(key);
+				}
+			} else if (validator instanceof Function) {
+				try {
+					ret[renamedKey] = validator(obj[key]);
+				} catch (e) {
+					errors.push(key);
+				}
+			} else if (isCustomEnumerator(validator)) {
+				try {
+					ret[renamedKey] = acceptEnum(obj[key], validator.enum);
+				} catch (e) {
+					errors.push(key);
+				}
+			}
+		}
+	})
+	if (errors.length) throw new Error(errors.join(', '));
+
+	return ret;
+}
+
+export const acceptEnum = (i: string, availableItems: string[]) => {
+	if (!availableItems.includes(i)) throw new Error(`Not in ${availableItems.join(', ')}`);
+	return i;
+}
+
+const isCustomEnumerator = (value: any) => {
+	return (
+		typeof value === "object" &&
+		value !== null &&
+		"enum" in value &&
+		Array.isArray((value as any).enum)
+	)
+}
+
+export const acceptNumberFromString = (i: string) => {
+	if (!i || isNaN(parseFloat(i))) throw new Error(`Bad type: ${typeof(i)}, expected number`);
+	return parseFloat(i);
+}
