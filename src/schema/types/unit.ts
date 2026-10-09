@@ -39,11 +39,10 @@ export const UnitRef = builder.prismaObject('Unit', {
 				});
 			},
 		}),
-		profiles: t.prismaField({
-			type: [UnitHasProfileRef],
-			resolve: async (query: any, parent: any, _: any, context: any) => {
+		profiles: t.field({
+			type: ['UnitHasProfile'],
+			resolve: async (parent: any, _: any, context: any) => {
 				return await context.prisma.UnitHasProfile.findMany({
-					...query,
 					where: {
 						idUnit: parent.id,
 					},
@@ -64,8 +63,7 @@ export const UnitRef = builder.prismaObject('Unit', {
 				return (units && units["units"].length > 0 && units["units"][0].unittype) ? units["units"][0].unittype.label : '';
 			},
 		}),
-		opLock: t.field({
-			type: 'String',
+		opLock: t.string({
 			resolve: async (parent: any, _: any, context: any) => {
 				return OptimisticLock.createOpLock(parent.id, getUnitToString(parent));
 			},

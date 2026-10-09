@@ -1,7 +1,12 @@
 import {builder} from "../../builder";
 import {OptimisticLock} from "../../../lib/optimisticLock";
 import {UnitRef} from "../unit";
-import {Authorization} from "../../../../generated/prisma";
+import {
+	Authorization,
+	AuthorizationHasChemical,
+	AuthorizationHasHolder,
+	AuthorizationHasRoom
+} from "../../../../generated/prisma";
 
 const AuthorizationRef = builder.prismaObject('Authorization', {
 	name: 'Authorization',
@@ -14,7 +19,6 @@ const AuthorizationRef = builder.prismaObject('Authorization', {
 		creationDate: t.expose('creationDate', { type: 'DateTime' }),
 		authority: t.exposeString('authority'),
 		dateExpiryNotified: t.expose('dateExpiryNotified', { type: 'DateTime' }),
-
 		unit: t.field({
 			type: UnitRef,
 			resolve: async (parent: any, _: any, context: any) => {
@@ -23,66 +27,59 @@ const AuthorizationRef = builder.prismaObject('Authorization', {
 				});
 			}
 		}),
-
-		// t.nonNull.list.nonNull.field('authorization_rooms', {
-		// 	type: RoomStruct,
-		// 	resolve: async (parent, _, context) => {
-		// 		const authorizationsAndRooms = await context.prisma.authorization_has_room.findMany({
-		// 			where: { id_authorization: parent.id_authorization }
-		// 		});
-		// 		const roomIDs = new Set(authorizationsAndRooms.map((authorizationAndRoom) => authorizationAndRoom.id_lab));
-		// 		return await context.prisma.Room.findMany({
-		// 			where: { id: { in: [...roomIDs] }}
-		// 		})
-		// 	},
-		// });
-		//
-		// t.nonNull.list.nonNull.field('authorization_holders', {
-		// 	type: PersonStruct,
-		// 	resolve: async (parent, _, context) => {
-		// 		const authorizationsAndPeople = await context.prisma.authorization_has_holder.findMany({
-		// 			where: { id_authorization: parent.id_authorization }
-		// 		});
-		// 		const peopleIDs = new Set(authorizationsAndPeople.map((authorizationAndPerson) => authorizationAndPerson.id_person));
-		// 		return await context.prisma.Person.findMany({
-		// 			where: { id_person: { in: [...peopleIDs] }}
-		// 		})
-		// 	},
-		// });
-		//
-		// t.nonNull.list.nonNull.field('authorization_chemicals', {
-		// 	type: ChemicalStruct,
-		// 	resolve: async (parent, _, context) => {
-		// 		const authorizationsAndChemical = await context.prisma.authorization_has_chemical.findMany({
-		// 			where: { id_authorization: parent.id_authorization }
-		// 		});
-		// 		const chemicalIDs = new Set(authorizationsAndChemical.map((authorizationAndChemical) => authorizationAndChemical.id_chemical));
-		// 		return await context.prisma.auth_chem.findMany({
-		// 			where: { id_auth_chem: { in: [...chemicalIDs] }}
-		// 		})
-		// 	},
-		// });
-		//
-		// t.nonNull.list.nonNull.field('authorization_radiations', {
-		// 	type: RadiationStruct,
-		// 	resolve: async (parent, _, context) => {
-		// 		return await context.prisma.authorization_has_radiation.findMany({
-		// 			where: { id_authorization: parent.id_authorization }
-		// 		});
-		// 	},
-		// });
-		//
-		// t.nonNull.list.nonNull.field('authorization_files', {
-		// 	type: FileAuthorizationStruct,
-		// 	resolve: async (parent, _, context) => {
-		// 		return await context.prisma.AuthorizationHasFile.findMany({
-		// 			where: { id_authorization: parent.id_authorization }
-		// 		});
-		// 	},
-		// });
-
-		opLock: t.field({
-			type: 'String',
+		authorizationRooms: t.field({
+			type: ['Room'],
+			resolve: async (parent: any, _: any, context: any) => {
+				const authorizationsAndRooms = await context.prisma.AuthorizationHasRoom.findMany({
+					where: { idAuthorization: parent.idAuthorization }
+				});
+				const roomIDs = new Set(authorizationsAndRooms.map((authorizationAndRoom: AuthorizationHasRoom) => authorizationAndRoom.idLab));
+				return await context.prisma.Room.findMany({
+					where: { id: { in: [...roomIDs] }}
+				})
+			},
+		}),
+		authorizationHolders: t.field({
+			type: ['Person'],
+			resolve: async (parent: any, _: any, context: any) => {
+				const authorizationsAndPeople = await context.prisma.AuthorizationHasHolder.findMany({
+					where: { idAuthorization: parent.idAuthorization }
+				});
+				const peopleIDs = new Set(authorizationsAndPeople.map((authorizationAndPerson: AuthorizationHasHolder) => authorizationAndPerson.idPerson));
+				return await context.prisma.Person.findMany({
+					where: { idPerson: { in: [...peopleIDs] }}
+				})
+			},
+		}),
+		authorizationChemicals: t.field({
+			type: ['AuthChem'],
+			resolve: async (parent: any, _: any, context: any) => {
+				const authorizationsAndChemical = await context.prisma.AuthorizationHasChemical.findMany({
+					where: { idAuthorization: parent.idAuthorization }
+				});
+				const chemicalIDs = new Set(authorizationsAndChemical.map((authorizationAndChemical: AuthorizationHasChemical) => authorizationAndChemical.idChemical));
+				return await context.prisma.AuthChem.findMany({
+					where: { idAuthChem: { in: [...chemicalIDs] }}
+				})
+			},
+		}),
+		authorizationRadiations: t.field({
+			type: ['AuthorizationHasRadiation'],
+			resolve: async (parent: any, _: any, context: any) => {
+				return await context.prisma.AuthorizationHasRadiation.findMany({
+					where: { idAuthorization: parent.idAuthorization }
+				});
+			},
+		}),
+		authorizationFiles: t.field({
+			type: ['AuthorizationHasFile'],
+			resolve: async (parent: any, _: any, context: any) => {
+				return await context.prisma.AuthorizationHasFile.findMany({
+					where: { idAuthorization: parent.idAuthorization }
+				});
+			},
+		}),
+		opLock: t.string({
 			resolve: async (parent: any, _: any, context: any) => {
 				return OptimisticLock.createOpLock(parent.idAuthorization, getAuthorizationToString(parent));
 			},

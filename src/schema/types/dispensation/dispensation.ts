@@ -1,6 +1,11 @@
 import {builder} from "../../builder";
 import {OptimisticLock} from "../../../lib/optimisticLock";
-import {Dispensation} from "../../../../generated/prisma";
+import {
+  Dispensation,
+  DispensationHasHolder,
+  DispensationHasRoom,
+  DispensationHasUnit
+} from "../../../../generated/prisma";
 
 const DispensationRef = builder.prismaObject('Dispensation', {
   name: 'Dispensation',
@@ -17,16 +22,12 @@ const DispensationRef = builder.prismaObject('Dispensation', {
     createdOn: t.expose('createdOn', { type: 'DateTime' }),
     modifiedBy: t.exposeString('modifiedBy'),
     modifiedOn: t.expose('modifiedOn', { type: 'DateTime' }),
-
-    dispensation: t.field({
-      type: "String",
+    dispensation: t.string({
       resolve: async (parent: any, _: any, context: any) => {
         return `DISP-${parent.idDispensation}`;
       }
     }),
-
-    subject: t.field({
-      type: "String",
+    subject: t.string({
       resolve: async (parent: any, _: any, context: any) => {
         const subject = await context.prisma.DispensationSubject.findUnique({
           where: { idDispensationSubject: parent.idDispensationSubject }
@@ -34,66 +35,59 @@ const DispensationRef = builder.prismaObject('Dispensation', {
         return subject ? subject.subject : null;
       }
     }),
-
-    // dispensation_rooms: t.prismaField({
-    //   type: [RoomRef],
-    //   resolve: async (query: any, parent: any, _: any, context: any) => {
-    //     const dispensationsAndRooms = await context.prisma.DispensationHasRoom.findMany({
-    //       where: { idDispensation: parent.idDispensation }
-    //     });
-    //     const roomIDs = new Set(dispensationsAndRooms.map((dispensationAndRoom: DispensationHasRoom) => dispensationAndRoom.idLab));
-    //     return await context.prisma.Room.findMany({
-    //       where: { id: { in: [...roomIDs] }}
-    //     })
-    //   },
-    // }),
-    //
-    // t.nonNull.list.nonNull.field('dispensation_holders', {
-    //   type: PersonStruct,
-    //   resolve: async (parent, _, context) => {
-    //     const dispensationsAndPeople = await context.prisma.DispensationHasHolder.findMany({
-    //       where: { id_dispensation: parent.id_dispensation }
-    //     });
-    //     const peopleIDs = new Set(dispensationsAndPeople.map((dispensationAndPerson) => dispensationAndPerson.id_person));
-    //     return await context.prisma.Person.findMany({
-    //       where: { id_person: { in: [...peopleIDs] }}
-    //     })
-    //   },
-    // });
-    //
-    // t.nonNull.list.nonNull.field('dispensation_units', {
-    //   type: UnitStruct,
-    //   resolve: async (parent, _, context) => {
-    //     const dispensationsAndUnits = await context.prisma.DispensationHasUnit.findMany({
-    //       where: { id_dispensation: parent.id_dispensation }
-    //     });
-    //     const unitIDs = new Set(dispensationsAndUnits.map((dispensationsAndUnit) => dispensationsAndUnit.id_unit));
-    //     return await context.prisma.Unit.findMany({
-    //       where: { id: { in: [...unitIDs] }}
-    //     })
-    //   },
-    // });
-    //
-    // t.nonNull.list.nonNull.field('dispensation_tickets', {
-    //   type: TicketStruct,
-    //   resolve: async (parent, _, context) => {
-    //     return await context.prisma.DispensationHasTicket.findMany({
-    //       where: { id_dispensation: parent.id_dispensation }
-    //     });
-    //   },
-    // });
-    //
-    // t.nonNull.list.nonNull.field('dispensation_files', {
-    //   type: FileDispensationStruct,
-    //   resolve: async (parent, _, context) => {
-    //     return await context.prisma.DispensationHasFile.findMany({
-    //       where: { id_dispensation: parent.id_dispensation }
-    //     });
-    //   },
-    // });
-
-    opLock: t.field({
-      type: 'String',
+    dispensationRooms: t.field({
+      type: ['Room'],
+      resolve: async (parent: any, _: any, context: any) => {
+        const dispensationsAndRooms = await context.prisma.DispensationHasRoom.findMany({
+          where: { idDispensation: parent.idDispensation }
+        });
+        const roomIDs = new Set(dispensationsAndRooms.map((dispensationAndRoom: DispensationHasRoom) => dispensationAndRoom.idLab));
+        return await context.prisma.Room.findMany({
+          where: { id: { in: [...roomIDs] }}
+        })
+      },
+    }),
+    dispensationHolders: t.field({
+      type: ['Person'],
+      resolve: async (parent: any, _: any, context: any) => {
+        const dispensationsAndPeople = await context.prisma.DispensationHasHolder.findMany({
+          where: { idDispensation: parent.idDispensation }
+        });
+        const peopleIDs = new Set(dispensationsAndPeople.map((dispensationAndPerson: DispensationHasHolder) => dispensationAndPerson.idPerson));
+        return await context.prisma.Person.findMany({
+          where: { idPerson: { in: [...peopleIDs] }}
+        })
+      },
+    }),
+    dispensationUnits: t.field({
+      type: ['Unit'],
+      resolve: async (parent: any, _: any, context: any) => {
+        const dispensationsAndUnits = await context.prisma.DispensationHasUnit.findMany({
+          where: { idDispensation: parent.idDispensation }
+        });
+        const unitIDs = new Set(dispensationsAndUnits.map((dispensationsAndUnit: DispensationHasUnit) => dispensationsAndUnit.idUnit));
+        return await context.prisma.Unit.findMany({
+          where: { id: { in: [...unitIDs] }}
+        })
+      },
+    }),
+    dispensationTickets: t.field({
+      type: ['DispensationHasTicket'],
+      resolve: async (parent: any, _: any, context: any) => {
+        return await context.prisma.DispensationHasTicket.findMany({
+          where: { idDispensation: parent.idDispensation }
+        });
+      },
+    }),
+    dispensationFiles: t.field({
+      type: ['DispensationHasFile'],
+      resolve: async (parent: any, _: any, context: any) => {
+        return await context.prisma.DispensationHasFile.findMany({
+          where: { idDispensation: parent.idDispensation }
+        });
+      },
+    }),
+    opLock: t.string({
       resolve: async (parent: any, _: any, context: any) => {
         return OptimisticLock.createOpLock(parent.idDispensation, getDispensationToString(parent));
       },

@@ -14,8 +14,7 @@ const BioOrgRef = builder.prismaObject('BioOrg', {
 		filePath: t.exposeString('filePath'),
 		updatedOn: t.expose('updatedOn', { type: 'DateTime' }),
 		updatedBy: t.exposeString('updatedBy'),
-		opLock: t.field({
-			type: 'String',
+		opLock: t.string({
 			resolve: async (parent: any, _: any, context: any) => {
 				return OptimisticLock.createOpLock(parent.idBioOrg, getBioOrgToString(parent));
 			},

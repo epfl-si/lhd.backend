@@ -2,7 +2,7 @@ import {builder} from "../builder";
 import {getUsersFromApi} from "../../lib/callAPI";
 import {findPersonByName} from "../../model/persons";
 
-builder.prismaObject('Person', {
+export const PersonRef = builder.prismaObject('Person', {
 	name: 'Person',
 	fields: (t: any) => ({
 		name: t.exposeString('name'),
