@@ -2,7 +2,7 @@ import * as dotenv from "dotenv";
 
 dotenv.config();
 
-export async function getUsersFromApi(search: string): Promise<any[]> {
+export async function getUsersFromApi(search: string): Promise<any> {
 	return callAPI(`https://${process.env.API_EPFL_CH_URL}/v1/persons?query=${search}&isaccredited=1`, "GET");
 }
 
@@ -10,7 +10,7 @@ export async function getUnitsFromApi(search: string): Promise<any> {
 	return callAPI(`https://${process.env.API_EPFL_CH_URL}/v1/units?query=${search}`, "GET");
 }
 
-export async function getRoomsFromApi(search: string): Promise<any[]> {
+export async function getRoomsFromApi(search: string): Promise<any> {
 	return callAPI(`https://${process.env.API_EPFL_CH_URL}/v1/rooms?query=${search}`, "GET");
 }
 
