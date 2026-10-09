@@ -158,6 +158,30 @@ const roomSearchSchema = z
 	})
 	.nullish();
 
+const RoomsFromAPIResult = builder.objectRef<RoomFromAPIShape>('RoomsFromAPIResult').implement({
+	fields: (t) => ({
+		name: t.exposeString('name'),
+		floor: t.exposeString('floor', { nullable: true }),
+		id: t.exposeInt('id'),
+		sector: t.exposeString('sector', { nullable: true }),
+		site: t.exposeString('site', { nullable: true }),
+		building: t.exposeString('building', { nullable: true }),
+		vol: t.exposeFloat('vol', { nullable: true }),
+		facultyuse: t.exposeString('facultyuse', { nullable: true }),
+	}),
+});
+
+type RoomFromAPIShape = {
+	name: string;
+	floor?: string;
+	id: number;
+	sector?: string;
+	site?: string;
+	building?: string;
+	vol?: number;
+	facultyuse?: string;
+};
+
 builder.queryType({
 	fields: (t) => ({
 		roomsWithPagination: t.field({
@@ -175,5 +199,32 @@ builder.queryType({
 				return await getRooms(ctx.prisma, search, args.take ?? 20, args.skip ?? 0);
 			},
 		}),
+		roomsFromAPI: t.field({
+			type: [RoomsFromAPIResult],
+			authScopes: {
+				needPermission: 'canListRooms'
+			},
+			args: {
+				search: t.arg.string({required: true}),
+			},
+			resolve: async (root, args, ctx: any) => {
+				const rooms = await getRoomsFromApi(args.search);
+				const roomsList: RoomFromAPIShape[] = [];
+				rooms["rooms"].forEach((u: any) =>
+				{
+					roomsList.push({
+						name: u.name,
+						floor: u.floor,
+						id: u.id,
+						building: u.building['name'],
+						sector: u.zone != 'Z' ? u.zone : '',
+						site: u.building?.site?.label,
+						vol: Math.round(((u.surface || 0) * (u.height || 0)) * 100) / 100,
+						facultyuse: u.facultyuse,
+					});
+				});
+				return roomsList;
+			},
+		})
 	}),
 });
