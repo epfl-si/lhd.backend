@@ -2,6 +2,11 @@ import {builder} from "../builder";
 import {OptimisticLock} from "../../lib/optimisticLock";
 import {Room, UnitHasRoom} from "../../../generated/prisma";
 import {getRoomsFromApi} from "../../lib/callAPI";
+import {z} from "zod";
+import {getRooms} from "../../model/rooms";
+import {sanitizeSearchString} from "../../lib/searchStrings";
+import {alphanumericRegexp, unitNameRegexp} from "../../lib/lhdValidators";
+import {acceptNumberFromString} from "../../lib/fieldValidatePlugin";
 
 export const RoomRef = builder.prismaObject('Room', {
 	name: 'Room',
@@ -72,8 +77,8 @@ export const RoomRef = builder.prismaObject('Room', {
 			type: ['LabHasHazardsAdditionalInfo'],
 			resolve: async (parent: any, _: any, context: any) => {
 				return await context.prisma.LabHasHazardsAdditionalInfo.findMany({
-					where: { id_lab: (parent as any).id },
-					include: { hazard_category: true }
+					where: { idLab: (parent as any).id },
+					include: { hazardCategory: true }
 				});
 			}
 		}),
@@ -112,3 +117,62 @@ export function getRoomToString(parent: Room) {
 export async function getRoomOriginalObject (tx: any, opLock: string, name: string) {
 	return await OptimisticLock.ensureDBObjectIsTheSame(opLock, 'Room', 'id', tx, name, getRoomToString);
 }
+
+const RoomListResult = builder.objectRef<{
+	totalCount: number;
+	rooms: any[];
+}>('RoomListResult').implement({
+	fields: (t) => ({
+		totalCount: t.exposeInt('totalCount'),
+		rooms: t.field({
+			type: [RoomRef],
+			resolve: (parent) => parent.rooms,
+		}),
+	}),
+});
+
+const roomSearchSpec = {
+	Hazard:      { rename: 'hazard',      validate: alphanumericRegexp },
+	Room:        { rename: 'room',        validate: alphanumericRegexp },
+	Designation: { rename: 'designation', validate: alphanumericRegexp },
+	Floor:       { rename: 'floor',       validate: alphanumericRegexp },
+	Sector:      { rename: 'sector',      validate: alphanumericRegexp },
+	Building:    { rename: 'building',    validate: alphanumericRegexp },
+	Unit:        { rename: 'unit',        validate: unitNameRegexp },
+	Profile:     { rename: 'profile',     validate: alphanumericRegexp },
+	Volume:      { rename: 'volume',      validate: acceptNumberFromString },
+};
+
+const roomSearchSchema = z
+	.string()
+	.superRefine((s, ctx) => {
+		try {
+			sanitizeSearchString(s, roomSearchSpec);
+		} catch (e) {
+			ctx.addIssue({
+				code: 'custom',
+				message: `Invalid search parameters: ${(e as Error).message}`,
+			});
+		}
+	})
+	.nullish();
+
+builder.queryType({
+	fields: (t) => ({
+		roomsWithPagination: t.field({
+			type: RoomListResult,
+			authScopes: {
+				needPermission: 'canListRooms'
+			},
+			args: {
+				search: t.arg.string({defaultValue: '', validate: roomSearchSchema}),
+				skip: t.arg.int({defaultValue: 0, validate: z.number().int().min(0).nullish()}),
+				take: t.arg.int({defaultValue: 20, validate: z.number().int().min(0).nullish()}),
+			},
+			resolve: async (root, args, ctx: any) => {
+				const search = sanitizeSearchString(args.search ?? '', roomSearchSpec);
+				return await getRooms(ctx.prisma, search, args.take ?? 20, args.skip ?? 0);
+			},
+		}),
+	}),
+});
