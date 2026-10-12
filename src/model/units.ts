@@ -54,7 +54,7 @@ export async function getUnitByName (prisma: any, unitName: string) {
 				{ institute : { school: { name: search } }},
 			]
 		},
-		include: { UnitHasProfile: { include: { person: true } }, institute: { include: { school: true } }, UnitHasRoom: { include: true } },
+		include: { unitHasProfiles: { include: { person: true } }, institute: { include: { school: true } }, unitHasRoom: { include: true } },
 		orderBy: [
 			{
 				name: 'asc',
@@ -201,4 +201,22 @@ export async function createUnit (tx: any, name: string, sciper: number, institu
 		});
 	}
 	return unit;
+}
+
+export async function createUnitRoom (tx: any, roomId: number, unitId: number) {
+	await tx.UnitHasRoom.create({
+		data: {
+			idLab: roomId,
+			idUnit: unitId
+		}
+	});
+}
+
+export async function deleteUnitRoom (tx: any, roomId: number, unitId: number) {
+	await tx.UnitHasRoom.deleteMany({
+		where: {
+			idLab: roomId,
+			idUnit: unitId
+		}
+	});
 }

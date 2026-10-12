@@ -1,17 +1,19 @@
 import {builder} from "../builder";
 import {OptimisticLock} from "../../lib/optimisticLock";
-import {UnitHasProfileRef} from "./unitHasProfile";
 import {z} from "zod";
 import {buildSearchConditions} from "../../lib/searchConditionBuilder";
 import {getUnitsFromApi} from "../../lib/callAPI";
-import {opLockValidator, personNameRegexp, unitNameRegexp} from "../../lib/lhdValidators";
+import {alphanumericRegexp, opLockValidator, personNameRegexp, unitNameRegexp} from "../../lib/lhdValidators";
 import {findOrCreatePerson} from "../../model/persons";
 import {
 	createInstitute,
-	createSchool, createUnit,
-	deleteUnitCascade, findInstituteByName, findSchoolByName,
+	createSchool,
+	createUnit,
+	deleteUnitCascade,
+	findInstituteByName,
+	findSchoolByName,
 	findSingleUnitByName,
-	findUniqueUnit,
+	findUniqueUnit, getUnitByName,
 	getUnitListBySearch,
 	updateProfiles,
 	updateSubUnits,
@@ -118,7 +120,7 @@ const ProfileInputType = builder.inputType('ProfileInputType', {
 	}),
 });
 
-const UnitInputType = builder.inputType('UnitInputType', {
+export const UnitInputType = builder.inputType('UnitInputType', {
 	fields: (t) => ({
 		status: t.string({ required: true, validate: z.enum(['New', 'Deleted', 'Default']) }),
 		name: t.string({ required: true, validate: z.string().regex(unitNameRegexp) })
@@ -197,6 +199,18 @@ builder.queryType({
 				const totalCount = unitList.length;
 
 				return { units, totalCount };
+			},
+		}),
+		unitsFromFullText: t.field({
+			type: [UnitRef],
+			authScopes: {
+				needPermission: 'canListUnits'
+			},
+			args: {
+				search: t.arg.string({required: true, validate: z.string().regex(alphanumericRegexp)})
+			},
+			resolve: async (root, args, ctx: any) => {
+				return await getUnitByName(ctx.prisma, args.search);
 			},
 		}),
 		unitsFromAPI: t.field({
