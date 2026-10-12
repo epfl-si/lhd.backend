@@ -3,6 +3,7 @@ import {Room} from "../../generated/prisma";
 import {UserInfo} from "../lib/userType";
 import {expireDispensation, getDispensation} from "./dispensation";
 import {expireAuthorization} from "./authorization";
+import {RoomFromAPIShape} from "../schema/types/room";
 
 export async function getRooms (prisma: any, dictionary?: Partial<{
 	hazard: string,
@@ -215,4 +216,53 @@ export async function getRoomByNameForAxs (prisma: any, roomName: string) {
 			}
 		},
 	});
+}
+
+export async function getRoomByName (prisma: any, roomName: string) {
+	return await prisma.Room.findFirst({ where: { name: { contains: roomName } } });
+}
+
+export async function saveNewRoom (tx: any, room: RoomFromAPIShape) {
+	const newRoom = await tx.Room.findUnique({ where: { sciperLab: room.id }});
+
+	if (!newRoom) {
+		const parts: string[] = room.name.split(' ');
+
+		const labType = await tx.RoomKind.findFirst({where: {name: room.facultyuse}});
+		await tx.Room.create({
+			data: {
+				sciperLab: room.id,
+				building: room.building,
+				sector: room.sector,
+				floor: room.floor,
+				roomNo: parts[parts.length - 1],
+				name: room.name,
+				site: room.site,
+				vol: room.vol,
+				labTypeIsDifferent: false,
+				idLabType: labType ? labType.idLabType : null
+			}
+		});
+	} else {
+		await tx.Room.update({
+			data: {
+				isDeleted: false
+			},
+			where: {
+				id: newRoom.id
+			}
+		});
+	}
+}
+
+export async function updateRoom (tx: any, roomId: number, kind?: string | null, vent?: string, labTypeIsDifferent?: boolean) {
+	const roomKind = await tx.RoomKind.findFirst({where: {name: kind}})
+	await tx.Room.update(
+		{ where: { id: roomId },
+			data: {
+				vent: vent,
+				labTypeIsDifferent: labTypeIsDifferent,
+				kind: { connect: { idLabType: roomKind.idLabType}},
+			}
+		});
 }

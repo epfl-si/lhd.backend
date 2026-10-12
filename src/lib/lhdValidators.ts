@@ -6,6 +6,7 @@ export const fileNameRegexp = new RegExp(/^[\p{L}\p{N}, _\-\(\)\.]+\.[A-Za-z0-9]
 export const casRegexp = new RegExp(/^[0-9][0-9-/]*[0-9]$/);
 export const organismRegexp = new RegExp("^[a-zA-Z0-9-.,'/_°* ]*$");
 export const unitNameRegexp = new RegExp("^[A-Za-z0-9éàèôû *()+_.-]*$");
+export const roomNameRegexp = new RegExp("[A-Z][A-Z0-9-. ]*[A-Z0-9]");
 export const personNameRegexp = new RegExp(/^[\p{L}\p{M} -]+$/u);
 export const pathRegexp = new RegExp(/^[\p{L}\p{N}, _\-\(\)\/\.]+\.[A-Za-z0-9]+$/u);
 export const alphanumericRegexp = new RegExp("[a-zA-Z0-9-.,'/_°* ]*");

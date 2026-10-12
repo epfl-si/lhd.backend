@@ -3,10 +3,12 @@ import {OptimisticLock} from "../../lib/optimisticLock";
 import {Room, UnitHasRoom} from "../../../generated/prisma";
 import {getRoomsFromApi} from "../../lib/callAPI";
 import {z} from "zod";
-import {getRooms} from "../../model/rooms";
+import {getRoomByName, getRooms, saveNewRoom, updateRoom} from "../../model/rooms";
 import {sanitizeSearchString} from "../../lib/searchStrings";
-import {alphanumericRegexp, unitNameRegexp} from "../../lib/lhdValidators";
+import {alphanumericRegexp, roomNameRegexp, unitNameRegexp} from "../../lib/lhdValidators";
 import {acceptNumberFromString} from "../../lib/fieldValidatePlugin";
+import {UnitInputType} from "./unit";
+import {createUnitRoom, deleteUnitRoom, findSingleUnitByName} from "../../model/units";
 
 export const RoomRef = builder.prismaObject('Room', {
 	name: 'Room',
@@ -171,16 +173,42 @@ const RoomsFromAPIResult = builder.objectRef<RoomFromAPIShape>('RoomsFromAPIResu
 	}),
 });
 
-type RoomFromAPIShape = {
+export type RoomFromAPIShape = {
 	name: string;
-	floor?: string;
+	floor?: string | null | undefined;
 	id: number;
-	sector?: string;
-	site?: string;
-	building?: string;
-	vol?: number;
-	facultyuse?: string;
+	sector?: string | null | undefined;
+	site?: string | null | undefined;
+	building?: string | null | undefined;
+	vol?: number | null | undefined;
+	facultyuse?: string | null | undefined;
 };
+
+const RoomCreationInput = builder.inputType('RoomCreationType', {
+	fields: (t) => ({
+		id: t.int({ required: true }),
+		name: t.string({ required: true }),
+		status: t.string({ required: true }),
+		site: t.string(),
+		floor: t.string(),
+		building: t.string(),
+		sector: t.string(),
+		vol: t.float(),
+		facultyuse: t.string(),
+	}),
+});
+
+const roomCreationSchema = z.object({
+	id: z.number().int(),
+	name: z.string().regex(roomNameRegexp),
+	site: z.string().regex(alphanumericRegexp).nullish(),
+	floor: z.string().regex(alphanumericRegexp).nullish(),
+	building: z.string().regex(alphanumericRegexp).nullish(),
+	sector: z.string().regex(alphanumericRegexp).nullish(),
+	vol: z.number().nullish(),
+	facultyuse: z.string().regex(alphanumericRegexp).nullish(),
+	status: z.enum(['New', 'Default', 'Deleted']),
+});
 
 builder.queryType({
 	fields: (t) => ({
@@ -199,13 +227,26 @@ builder.queryType({
 				return await getRooms(ctx.prisma, search, args.take ?? 20, args.skip ?? 0);
 			},
 		}),
+		roomDetails: t.field({
+			type: RoomRef,
+			authScopes: {
+				needPermission: 'canListRooms'
+			},
+			args: {
+				name: t.arg.string({required: true, validate: z.string().regex(roomNameRegexp)}),
+				isDeleted: t.arg.boolean({defaultValue: false})
+			},
+			resolve: async (root, args, ctx: any) => {
+				return await getRoomByName(ctx.prisma, args.name);
+			},
+		}),
 		roomsFromAPI: t.field({
 			type: [RoomsFromAPIResult],
 			authScopes: {
 				needPermission: 'canListRooms'
 			},
 			args: {
-				search: t.arg.string({required: true}),
+				search: t.arg.string({required: true, validate: z.string().regex(alphanumericRegexp)}),
 			},
 			resolve: async (root, args, ctx: any) => {
 				const rooms = await getRoomsFromApi(args.search);
@@ -220,11 +261,73 @@ builder.queryType({
 						sector: u.zone != 'Z' ? u.zone : '',
 						site: u.building?.site?.label,
 						vol: Math.round(((u.surface || 0) * (u.height || 0)) * 100) / 100,
-						facultyuse: u.facultyuse,
+						facultyuse: u.facultyuse.trim()
 					});
 				});
 				return roomsList;
 			},
 		})
+	}),
+});
+
+builder.mutationType({
+	fields: (t) => ({
+		createRoom: t.string({
+			authScopes: {
+				needPermission: 'canEditRooms'
+			},
+			args: {
+				rooms: t.arg({
+					type: [RoomCreationInput],
+					required: true,
+					validate: z.array(roomCreationSchema),
+				}),
+			},
+			resolve: async (root, args, ctx: any) => {
+				return await ctx.prisma.$transaction(async (tx: any) => {
+					for (const room of args.rooms) {
+						if (room.status === 'New') {
+							await saveNewRoom(tx, room);
+						}
+					}
+					return ;
+				});
+			},
+		}),
+		updateRoom: t.string({
+			authScopes: {
+				needPermission: 'canEditRooms'
+			},
+			args: {
+				opLock: t.arg.string({ required: true }),
+				name: t.arg.string({ required: true }),
+				kind: t.arg.string(),
+				vent: t.arg.string({required: true}),
+				labTypeIsDifferent: t.arg.boolean({required: true}),
+				units: t.arg({
+					type: [UnitInputType],
+					required: true
+				}),
+			},
+			resolve: async (root, args, ctx: any) => {
+				return await ctx.prisma.$transaction(async (tx: any) => {
+					const room = await getRoomOriginalObject(tx, args.opLock, "Room");
+
+					await updateRoom(tx,room.id, args.kind, args.vent, args.labTypeIsDifferent);
+
+					for (const unitToChange of args.units) {
+						const unit = await findSingleUnitByName(ctx, unitToChange.name);
+						if (unitToChange.status === 'New') {
+							await createUnitRoom(tx, room.id, unit.id);
+						}
+						else if (unitToChange.status === 'Deleted') {
+							await deleteUnitRoom(tx, room.id, unit.id);
+						}
+					}
+
+					return room.name;
+				});
+			},
+		}),
 	}),
 });
