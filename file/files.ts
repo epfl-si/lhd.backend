@@ -3,13 +3,16 @@ import {OpLock} from "../src/lib/optimisticLock";
 import {getBioOrgOriginalObject} from "../src/schema/types/bioOrg";
 import {authenticateFromBearerToken} from "../src/lib/authentication";
 import {checkAPICall} from "../api/lib/checkedAPICalls";
-import {sendFileResponse} from "../src/lib/fileUtilities";
+import {getReportFilesByUnit, sendFileResponse} from "../src/lib/fileUtilities";
 import {errorHandler} from "../api/lib/errorHandler";
 import {setReqPrismaMiddleware} from "../api/lib/rest";
-import {obfuscatedIdValidators, pathRegexp} from "../src/lib/lhdValidators";
+import {fileNameRegexp, obfuscatedIdValidators, pathRegexp} from "../src/lib/lhdValidators";
 import {getDispensationOriginalObject} from "../src/schema/types/dispensation/dispensation";
 import {getAuthorizationOriginalObject} from "../src/schema/types/authorization/authorization";
 import {getAssessmentDecisionOriginalObject} from "../src/schema/types/assessment/assessmentDecision";
+import {getLabHasHazardsAdditionalInfoOriginalObject} from "../src/schema/types/hazards/hazardsAdditionalInfo";
+import {getLabHasHazardChildOriginalObject} from "../src/schema/types/hazards/labHazardChild";
+import {getUnitOriginalObject} from "../src/schema/types/unit";
 
 const obfuscatedIdParams = {
 	eph_id (req: any) { return req.params.eph_id },
@@ -39,6 +42,86 @@ export function makeRESTFilesAPI() {
 			const opLock: OpLock = {salt: req.params.salt, eph_id: req.params.eph_id};
 			const org = await getBioOrgOriginalObject(req.prisma, JSON.stringify(opLock), 'organism');
 			sendFileResponse(org.filePath, res);
+		});
+
+	app.get("/hazardAdditionalInfo/:eph_id",
+		checkAPICall(
+			{
+				authorize: (req) => req.user.canListHazards,
+				required: {
+					...obfuscatedIdParams,
+					fileName (req) { return req.query.fileName }
+				},
+				validate: {
+					...obfuscatedIdValidators,
+					fileName: pathRegexp
+				}
+			}),
+		async (req: Request<GetFile>, res) => {
+			const opLock: OpLock = {salt: req.params.salt, eph_id: req.params.eph_id};
+			await getLabHasHazardsAdditionalInfoOriginalObject(req.prisma, JSON.stringify(opLock), 'hazard info');
+			sendFileResponse(req.params.fileName!, res);
+		});
+
+	app.get("/labHasHazardsChild/:eph_id",
+		checkAPICall(
+			{
+				authorize: (req) => req.user.canListHazards,
+				required: {
+					...obfuscatedIdParams,
+				},
+				validate: {
+					...obfuscatedIdValidators,
+				}
+			}),
+		async (req: Request<GetFile>, res) => {
+			const opLock: OpLock = {salt: req.params.salt, eph_id: req.params.eph_id};
+			const child = await getLabHasHazardChildOriginalObject(req.prisma, opLock, 'hazard child');
+			const submission = JSON.parse(child.submission);
+			sendFileResponse(submission.data.fileLink, res);
+		});
+
+	type GetReportFile = {salt: string, eph_id: string, fileName: string};
+	app.get("/reportFile/:eph_id",
+		checkAPICall(
+			{
+				authorize: (req) => req.user.canListReportFiles,
+				required: {
+					...obfuscatedIdParams,
+					fileName (req) { return req.query.fileName }
+				},
+				validate: {
+					...obfuscatedIdValidators,
+					fileName: fileNameRegexp
+				}
+			}),
+		async (req: Request<GetReportFile>, res) => {
+			const opLock: OpLock = {salt: req.params.salt, eph_id: req.params.eph_id};
+			const unit = await getUnitOriginalObject(req.prisma, JSON.stringify(opLock), 'unit');
+			const reportFiles = await getReportFilesByUnit(unit);
+			const file = reportFiles.find(file => file.name == req.params.fileName);
+			sendFileResponse(file ? file.path : '', res);
+		});
+
+	type GetFileById = {id: number};
+	app.get("/organismByFormIO/:id",
+		checkAPICall(
+			{
+				authorize: (req) => req.user.canListOrganisms,
+				required: {
+					id (req) { return req.params.id }
+				},
+				validate: {
+					id: Number
+				}
+			}),
+		async (req: Request<GetFileById>, res) => {
+			let filePath = '';
+			const orgByFIO = await req.prisma.BioOrg.findUnique({where: {idBioOrg: Number(req.params.id)}});
+			if (orgByFIO) {
+				filePath = orgByFIO.filePath;
+			}
+			sendFileResponse(filePath, res);
 		});
 
 	app.get("/dispensation/:eph_id",
