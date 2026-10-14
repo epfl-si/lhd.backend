@@ -1,3 +1,3 @@
-export async function findCategoryByName (prisma: any, idCategory: string) {
-	return await prisma.HazardCategory.findFirst({ where: { hazardCategoryName: idCategory }});
+export async function findCategoryByName (prisma: any, category: string) {
+	return await prisma.HazardCategory.findFirst({ where: { hazardCategoryName: category }});
 }
