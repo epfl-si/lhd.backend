@@ -1,8 +1,7 @@
 import {builder} from "../builder";
 import {OptimisticLock} from "../../lib/optimisticLock";
 import {z} from "zod";
-import {fileNameRegexp, opLockValidator, organismRegexp} from "../../lib/lhdValidators";
-import {sanitizeBase64DataUrl} from "../../lib/fieldValidatePlugin";
+import {fileContentValidator, fileNameRegexp, opLockValidator, organismRegexp} from "../../lib/lhdValidators";
 import {createBioOrg, deleteBioOrg, getBioOrgByName, updateBioOrg, updateBioOrgInHazards} from "../../model/bioOrg";
 import {BioOrg} from "../../../generated/prisma";
 
@@ -101,11 +100,7 @@ builder.mutationType({
 			validate: z.object({
 				organismName: z.string().regex(organismRegexp),
 				risk: z.number().int().lte(3).gte(1),
-				fileContent: z.string().optional().refine(
-						(value) => value === undefined || sanitizeBase64DataUrl(value), {
-							message: 'Invalid file content',
-						}
-					),
+				fileContent: fileContentValidator,
 				fileName: z.string().regex(fileNameRegexp).optional(),
 			}),
 			resolve: async (root, args, ctx: any) => {
@@ -131,11 +126,7 @@ builder.mutationType({
 				opLock: opLockValidator,
 				organismName: z.string().regex(organismRegexp),
 				risk: z.number().int().lte(3).gte(1),
-				fileContent: z.string().optional().refine(
-					(value) => value === undefined || sanitizeBase64DataUrl(value), {
-						message: 'Invalid file content',
-					}
-				),
+				fileContent: fileContentValidator,
 				fileName: z.string().regex(fileNameRegexp).optional(),
 			}),
 			resolve: async (root, args, ctx: any) => {
