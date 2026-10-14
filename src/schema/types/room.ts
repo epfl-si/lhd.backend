@@ -329,5 +329,25 @@ builder.mutationType({
 				});
 			},
 		}),
+		deleteRoom: t.string({
+			authScopes: {
+				needPermission: 'canEditRooms'
+			},
+			args: {
+				opLock: t.arg.string({ required: true })
+			},
+			resolve: async (root, args, ctx: any) => {
+				let emails = {dispensations: []};
+				const result = await ctx.prisma.$transaction(async (tx: any) => {
+					const room = await getRoomOriginalObject(tx, args.opLock, "Room");
+					emails = await deleteRoom(tx, ctx, room, ctx.user);
+					return room.name;
+				});
+				for ( const disp of emails.dispensations ) {
+					await sendEmailForDispensation(getUserString(ctx.user), ctx.user.userEmail, disp, 'expiredDispensation');
+				}
+				return result;
+			},
+		}),
 	}),
 });
