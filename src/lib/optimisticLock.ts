@@ -12,7 +12,7 @@ export type OpLock = {
 
 export type submission = {
 	opLock: OpLock,
-	submission: { data: object },
+	submission: { data: any },
 	formName?: string,
 	children?: submission[]
 }
