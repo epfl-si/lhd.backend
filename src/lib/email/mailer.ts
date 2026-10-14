@@ -1,27 +1,22 @@
 import * as nodemailer from "nodemailer";
 import {
 	cancelledDispensation,
-	chemical, expiredDispensation,
+	chemical,
+	expiredDispensation,
 	expiringDispensation,
 	hazardsCae,
 	hazardsCosec,
 	logAction,
-	logRecipients, modifiedDispensation, newDispensation,
+	logRecipients,
+	modifiedDispensation,
+	newDispensation,
 	renewDispensation
 } from "./EmailTemplates";
-import {getUserInfoFromAPI} from "../callAPI";
 import {getFormattedDate} from "../date";
-import {
-	AuthChem,
-	Dispensation,
-	DispensationHasHolder,
-	DispensationHasRoom,
-	DispensationHasTicket,
-	DispensationHasUnit, HazardsAdditionalInfoHasTag,
-	LabHasHazardsAdditionalInfo,
-	Person, Tag
-} from "../../../generated/prisma";
+import {AuthChem} from "../../../generated/prisma";
 import {getHazardLevel} from "../hazardsParser";
+import {getRoomWithHazards} from "../../model/rooms";
+import {getUserString, UserInfo} from "../userType";
 
 export const mailer = nodemailer.createTransport({
 	host: process.env.SMTP_HOST,
@@ -89,52 +84,32 @@ export async function sendEmailsForHazards (
 	args: any,
 	oldRoom: any,
 	cosecs: string[],
-	userInfo: {
-			userFullName: string;
-			userEmail: string;
-			sciper: string
-	}) {
+	userInfo: UserInfo
+) {
 	if ( process.env.HAZARD_TYPES_TO_EMAIL_AFTER_UPDATE!.includes(args.category) ) {
-		const newRoom = await prisma.Room.findFirst(
-			{
-				where: { name: args.room },
-				include: {
-					lab_has_hazards: true,
-					lab_has_hazards_additional_info: {
-						include: {
-							hazards_additional_info_has_tag: {
-								include: {
-									tag: true,
-								},
-							},
-							hazard_category: true
-						},
-					},
-				}
-			});
+		const newRoom = await getRoomWithHazards(prisma, args.room);
 
-		const oldValues = getHazardLevel(oldRoom.lab_has_hazards, args.category);
-		const newValues = getHazardLevel(newRoom.lab_has_hazards, args.category);
+		const oldValues = getHazardLevel(oldRoom.labHasHazards, args.category);
+		const newValues = getHazardLevel(newRoom.labHasHazards, args.category);
 		const created = (oldValues.laser.length == 0 && newValues.laser.length > 0) || (oldValues.bio.length == 0 && newValues.bio.length > 0);
 		const deleted = (oldValues.laser.length > 0 && newValues.laser.length == 0) || (oldValues.bio.length > 0 && newValues.bio.length == 0);
 		if ( created || deleted ) {
 			if ( userInfo.userEmail !== '' ) {
-				if (!newRoom.lab_has_hazards_additional_info
-					.find((info: any) => info.hazardCategory.hazard_category_name === args.category)
-					.hazards_additional_info_has_tag
-					.find((t: any) => t.tag.tag_name === 'Exception AxS')) {
-					await sendEmailCAE(userInfo.userFullName, userInfo.userEmail, args.room,
+				if (!newRoom.labHasHazardsAdditionalInfo
+					.find((info: any) => info.hazardCategory.hazardCategoryName === args.category)
+					.hazardsAdditionalInfoHasTag
+					.find((t: any) => t.tag.tagName === 'Exception AxS')) {
+					await sendEmailCAE(getUserString(userInfo), userInfo.userEmail, args.room,
 						logAction(created, deleted), args.category, args.additionalInfo.comment);
 				}
-				await sendEmailCosec(userInfo.userFullName, userInfo.userEmail, args.room,
+				await sendEmailCosec(getUserString(userInfo), userInfo.userEmail, args.room,
 					logAction(created, deleted), args.category, cosecs);
 			}
 		}
 	}
 }
 
-export async function sendEmailsForChemical (prisma: any, user: string, oldChemical: AuthChem, newChemical: AuthChem) {
-	const userInfo = await getUserInfoFromAPI(user);
+export async function sendEmailsForChemical (prisma: any, userEmail: string, oldChemical?: AuthChem, newChemical?: AuthChem) {
 	const chemicals = await prisma.auth_chem.findMany({where: {flag_auth_chem: true}});
 	const template = chemical;
 	const body = template.body
@@ -149,10 +124,10 @@ export async function sendEmailsForChemical (prisma: any, user: string, oldChemi
 
 	const csv: string = chemicals.map((chem: AuthChem) => `${chem.casAuthChem},"${chem.authChemEn}"`).join('\n');
 
-	if (userInfo.userEmail !== '') {
+	if (userEmail !== '') {
 		await mailer.sendMail({
 			from: `"LHD" <${process.env.SMTP_USER}>`,
-			to: process.env.ENVIRONMENT === 'prod' ? process.env.CATALYSE_EMAIL : userInfo.userEmail,
+			to: process.env.ENVIRONMENT === 'prod' ? process.env.CATALYSE_EMAIL : userEmail,
 			subject: template.subject,
 			html: process.env.ENVIRONMENT === 'prod' ? body : `${logRecipients([process.env.CATALYSE_EMAIL!], [], [])}\n${body}`,
 			attachments: [{raw: ["Content-Type: text/csv; charset=utf-8", `Content-Disposition: attachment; filename="chemicals-${getFormattedDate(new Date(), '')}.csv"`, "", csv].join("\r\n"),}]
