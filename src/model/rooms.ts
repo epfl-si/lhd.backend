@@ -159,6 +159,11 @@ export async function deleteRoom (tx: any, context: any, r: Room, infoUser: User
 				idLabHasHazardsAdditionalInfo: i.idLabHasHazardsAdditionalInfo
 			}
 		});
+		await tx.HazardsAdditionalInfoHasFile.deleteMany({
+			where: {
+				idLabHasHazardsAdditionalInfo: i.idLabHasHazardsAdditionalInfo
+			}
+		});
 	}
 	await tx.LabHasHazardsAdditionalInfo.deleteMany(where);
 	await tx.unitHasRoom.deleteMany(where);
