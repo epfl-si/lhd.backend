@@ -1,6 +1,7 @@
 import {OptimisticLock} from "./optimisticLock";
 import {z} from "zod";
 import {ValidationError} from "../../api/lib/checkedAPICalls";
+import {sanitizeBase64DataUrl} from "./fieldValidatePlugin";
 
 export const fileNameRegexp = new RegExp(/^[\p{L}\p{N}, _\-\(\)\.]+\.[A-Za-z0-9]+$/u);
 export const casRegexp = new RegExp(/^[0-9][0-9-/]*[0-9]$/);
@@ -10,6 +11,8 @@ export const roomNameRegexp = new RegExp("[A-Z][A-Z0-9-. ]*[A-Z0-9]");
 export const personNameRegexp = new RegExp(/^[\p{L}\p{M} -]+$/u);
 export const pathRegexp = new RegExp(/^[\p{L}\p{N}, _\-\(\)\/\.]+\.[A-Za-z0-9]+$/u);
 export const alphanumericRegexp = new RegExp("[a-zA-Z0-9-.,'/_°* ]*");
+export const freeFormTextRegexp = new RegExp(/^[\p{Script=Latin}\p{Mark}\p{Number}\p{Punctuation}\p{Separator}\p{Symbol}]*$/u);
+export const hazardCategoryNameRegexp = new RegExp(/^[a-zA-Z_]*$/);
 
 export const saltRegexp = new RegExp("[a-f0-9]+");
 export const ephIdRegexp = new RegExp("[a-zA-Z0-9/+=]+");
@@ -30,3 +33,8 @@ export function validateEphId (p: any) {
 }
 
 export const opLockValidator = z.string().refine((value) => validateOpLock(value))
+export const fileContentValidator = z.string().optional().refine(
+	(value) => value === undefined || sanitizeBase64DataUrl(value), {
+		message: 'Invalid file content',
+	}
+)

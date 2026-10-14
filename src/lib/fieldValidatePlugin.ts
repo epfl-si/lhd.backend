@@ -82,3 +82,12 @@ export const acceptNumberFromString = (i: string) => {
 	if (!i || isNaN(parseFloat(i))) throw new Error(`Bad type: ${typeof(i)}, expected number`);
 	return parseFloat(i);
 }
+
+export const acceptJson = (i: string) => {
+	try {
+		JSON.parse(i);
+		return i;
+	} catch (e) {
+		throw new Error(`Bad format for ${i}`);
+	}
+}
