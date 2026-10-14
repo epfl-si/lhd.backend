@@ -222,6 +222,37 @@ export async function getRoomByName (prisma: any, roomName: string) {
 	return await prisma.Room.findFirst({ where: { name: { contains: roomName } } });
 }
 
+export async function getRoomWithUnitByName (prisma: any, roomName: string) {
+	return await prisma.Room.findFirst(
+		{
+			where: { name: roomName },
+			include: {
+				unitHasRoom: { include: { unit: { include: { unitHasProfiles: { include: { person: true } } } } } },
+				labHasHazards: true
+			}
+		});
+}
+
+export async function getRoomWithHazards (prisma: any, room: string) {
+	return await prisma.Room.findFirst(
+		{
+			where: { name: room },
+			include: {
+				labHasHazards: true,
+				labHasHazardsAdditionalInfo: {
+					include: {
+						hazardsAdditionalInfoHasTag: {
+							include: {
+								tag: true,
+							},
+						},
+						hazardCategory: true
+					},
+				},
+			}
+		});
+}
+
 export async function saveNewRoom (tx: any, room: RoomFromAPIShape) {
 	const newRoom = await tx.Room.findUnique({ where: { sciperLab: room.id }});
 

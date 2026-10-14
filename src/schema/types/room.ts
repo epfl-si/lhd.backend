@@ -3,12 +3,14 @@ import {OptimisticLock} from "../../lib/optimisticLock";
 import {Room, UnitHasRoom} from "../../../generated/prisma";
 import {getRoomsFromApi} from "../../lib/callAPI";
 import {z} from "zod";
-import {getRoomByName, getRooms, saveNewRoom, updateRoom} from "../../model/rooms";
+import {deleteRoom, getRoomByName, getRooms, saveNewRoom, updateRoom} from "../../model/rooms";
 import {sanitizeSearchString} from "../../lib/searchStrings";
 import {alphanumericRegexp, roomNameRegexp, unitNameRegexp} from "../../lib/lhdValidators";
 import {acceptNumberFromString} from "../../lib/fieldValidatePlugin";
 import {UnitInputType} from "./unit";
 import {createUnitRoom, deleteUnitRoom, findSingleUnitByName} from "../../model/units";
+import {sendEmailForDispensation} from "../../lib/email/mailer";
+import {getUserString} from "../../lib/userType";
 
 export const RoomRef = builder.prismaObject('Room', {
 	name: 'Room',
@@ -212,6 +214,15 @@ const roomCreationSchema = z.object({
 
 builder.queryType({
 	fields: (t) => ({
+		rooms: t.prismaField({
+			type: [RoomRef],
+			authScopes: {
+				needPermission: 'canListRooms'
+			},
+			resolve: async (query, root, args, ctx: any, info) => {
+				return await ctx.prisma.Room.findMany();
+			},
+		}),
 		roomsWithPagination: t.field({
 			type: RoomListResult,
 			authScopes: {
