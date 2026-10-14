@@ -38,3 +38,17 @@ function getHazardFormToString(parent: HazardForm) {
 		version: parent.version
 	};
 }
+
+builder.queryType({
+	fields: (t) => ({
+		hazardForms: t.prismaField({
+			type: [HazardFormRef],
+			authScopes: {
+				needPermission: 'canListForms'
+			},
+			resolve: async (query, root, args, ctx: any, info) => {
+				return await ctx.prisma.HazardForm.findMany();
+			},
+		}),
+	}),
+});

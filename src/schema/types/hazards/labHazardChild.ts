@@ -1,5 +1,5 @@
 import {builder} from "../../builder";
-import {OptimisticLock} from "../../../lib/optimisticLock";
+import {OpLock, OptimisticLock} from "../../../lib/optimisticLock";
 import {LabHasHazardsChild} from "../../../../generated/prisma";
 
 export const LabHazardChildRef = builder.prismaObject('LabHasHazardsChild', {
@@ -40,6 +40,6 @@ export function getLabHasHazardChildToString(parent: LabHasHazardsChild) {
 	};
 }
 
-export async function getLabHasHazardChildOriginalObject (tx: any, opLock: string, name: string) {
-	return await OptimisticLock.ensureDBObjectIsTheSame(opLock, 'LabHasHazardsChild', 'idLabHasHazardsChild', tx, name, getLabHasHazardChildToString);
+export async function getLabHasHazardChildOriginalObject (tx: any, opLock: OpLock, name: string) {
+	return await OptimisticLock.getObjectByObfuscatedId(opLock, 'LabHasHazardsChild', 'idLabHasHazardsChild', tx, name, getLabHasHazardChildToString);
 }

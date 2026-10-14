@@ -6,3 +6,9 @@ export const FileAdditionalInfoRef = builder.prismaObject('HazardsAdditionalInfo
 		filePath: t.exposeString('filePath'),
 	}),
 });
+
+export const AdditionalInfoType = builder.inputType('AdditionalInfoType', {
+	fields: (t) => ({
+		comment: t.string(),
+	}),
+});
