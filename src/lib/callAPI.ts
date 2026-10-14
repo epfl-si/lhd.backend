@@ -41,17 +41,3 @@ async function callAPI(url: string, method: "GET" | "POST") {
 	const result = await fetch(request);
 	return result.json();
 }
-
-export async function getUserInfoFromAPI(username: string) {
-	let userFullName = username;
-	let userEmail = '';
-	let sciper = '';
-	const ldapUsers = await getUsersFromApi(username);
-	const ldapUser: any = ldapUsers && ldapUsers["persons"] ? ldapUsers["persons"].filter((u: any) => u.account && u.account.username == username) : [];
-	if (ldapUser.length == 1) {
-		userFullName = ldapUser[0].display;
-		userEmail = ldapUser[0].email;
-		sciper = ldapUser[0].id;
-	}
-	return {userFullName, userEmail, sciper};
-}

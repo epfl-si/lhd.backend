@@ -13,7 +13,7 @@ export async function createChemical (chemical: AuthChem, {prisma, user}: any) {
 			}
 		});
 	});
-	await sendEmailsForChemical(prisma, user.username, undefined, newChem);
+	await sendEmailsForChemical(prisma, user.userEmail, undefined, newChem);
 }
 
 export async function getChemicals (prisma: any, opts?: Partial<{
