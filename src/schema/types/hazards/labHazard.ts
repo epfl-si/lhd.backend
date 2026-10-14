@@ -1,4 +1,3 @@
-import {getLabHasHazardChildToString} from "./labHazardChild";
 import {builder} from "../../builder";
 import {OpLock, OptimisticLock, submission} from "../../../lib/optimisticLock";
 import {LabHasHazards} from "../../../../generated/prisma";
@@ -111,7 +110,7 @@ builder.mutationType({
 
 							if (h.children) {
 								for await ( const child of h.children ) {
-									await updateLabHasHazardsChild(tx, child, hazard.idLabHasHazards, args.category, h.submission)
+									await updateLabHasHazardsChild(tx, child, hazard.idLabHasHazards, h.submission)
 								}
 							}
 						}
@@ -123,7 +122,7 @@ builder.mutationType({
 
 								if (h.children) {
 									for await ( const child of h.children ) {
-										await updateLabHasHazardsChild(tx, child, hazard.idLabHasHazards, args.category, h.submission)
+										await updateLabHasHazardsChild(tx, child, hazard.idLabHasHazards, h.submission)
 									}
 								}
 							}
