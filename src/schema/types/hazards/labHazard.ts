@@ -10,7 +10,7 @@ import {AdditionalInfoType} from "./hazardAdditionalInfoFile";
 import {sendEmailsForHazards} from "../../../lib/email/mailer";
 import {getRoomWithUnitByName} from "../../../model/rooms";
 import {success} from "../../../lib/statuses";
-import {findHazardFormByCategory, findHazardFormHistory, updateHazardFormChild} from "../../../model/hazardForm";
+import {findHazardFormByCategory, findHazardFormHistory, updateLabHasHazardsChild} from "../../../model/hazardForm";
 import {findCategoryByName} from "../../../model/hazardCategory";
 import {createLabHasHazard, deleteHazard, updateLabHasHazard} from "../../../model/labHazard";
 import {
@@ -111,7 +111,7 @@ builder.mutationType({
 
 							if (h.children) {
 								for await ( const child of h.children ) {
-									await updateHazardFormChild(tx, child, hazard.idLabHasHazards, args.category, h.submission)
+									await updateLabHasHazardsChild(tx, child, hazard.idLabHasHazards, args.category, h.submission)
 								}
 							}
 						}
@@ -123,7 +123,7 @@ builder.mutationType({
 
 								if (h.children) {
 									for await ( const child of h.children ) {
-										await updateHazardFormChild(tx, child, hazard.idLabHasHazards, args.category, h.submission)
+										await updateLabHasHazardsChild(tx, child, hazard.idLabHasHazards, args.category, h.submission)
 									}
 								}
 							}

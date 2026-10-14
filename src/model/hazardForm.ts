@@ -14,7 +14,7 @@ export async function findHazardFormHistory (prisma: any, formId: number, versio
 	});
 }
 
-export async function updateHazardFormChild(tx: any, child: submission, parentHazard: number, category: string, parent: any) {
+export async function updateLabHasHazardsChild(tx: any, child: submission, parentHazard: number, category: string, parent: any) {
 	OptimisticLock.checkOpLock(child.opLock);
 
 	const formChild = await tx.HazardFormChild.findFirst({where: {hazardFormChildName: child.formName}});
