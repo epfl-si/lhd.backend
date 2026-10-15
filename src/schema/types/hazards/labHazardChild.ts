@@ -52,7 +52,7 @@ const searchSpec = {
 	chemical:  {rename: 'chemical.haz_en', validate: alphanumericRegexp},
 	organism:  {rename: 'organism.organism', validate: alphanumericRegexp},
 	container: {rename: 'container.name', validate: alphanumericRegexp},
-	Room:      {rename: 'room', validate: roomNameRegexp},
+	Room:      {rename: 'room', validate: alphanumericRegexp},
 	Cosec:     {rename: 'cosec', validate: alphanumericRegexp},
 	Prof:      {rename: 'prof', validate: alphanumericRegexp},
 	Unit:      {rename: 'unit', validate: alphanumericRegexp}
@@ -127,7 +127,7 @@ builder.queryType({
 				take: t.arg.int({defaultValue: 20, validate: z.number().int().min(0).nullish()}),
 			},
 			resolve: async (root, args, ctx: any) => {
-				const queryString = sanitizeSearchString(args.queryString ?? '', searchSpec);
+				const queryString = sanitizeSearchString(args.queryString ?? '', searchSpec, true);
 				const conditions = queryString as any || {};
 				const sql = Object.keys(conditions).map(key => {
 					if (key === 'room') {
