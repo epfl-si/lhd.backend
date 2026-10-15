@@ -1,4 +1,5 @@
 import {booleanRegexp} from "./lhdValidators";
+import {z} from "zod";
 
 export function sanitizeBase64DataUrl(value: string) {
 	const prefixMatch = value.match(/^data:[^;]+;base64,/);
@@ -105,3 +106,20 @@ export const acceptSubstringInList = (i: string, availableItems: string[]) => {
 	if (keyword === undefined) throw new Error(`Not in ${availableItems.join(', ')}`);
 	return keyword;
 }
+
+export const acceptDateString = (i: string) => {
+	const dateRegexp = new RegExp('^(0[1-9]|[12][0-9]|3[01])/(0[1-9]|1[0-2])/\\d{4}$');
+	if (!dateRegexp.test(i)) throw new Error(`Bad format for ${i}`);
+
+	const [dayCrea, monthCrea, yearCrea] = i.split("/").map(Number);
+	return new Date(yearCrea, monthCrea - 1, dayCrea, 12);
+}
+
+export const fromSanitizer = (fn: (value: any) => unknown) =>
+	z.any().superRefine((value, ctx) => {
+		try {
+			fn(value);
+		} catch (e) {
+			ctx.addIssue({ code: 'custom', message: (e as Error).message });
+		}
+	});

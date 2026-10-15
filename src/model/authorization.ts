@@ -1,27 +1,21 @@
-import {ensurePerson} from "./persons";
 import {buildSearchConditions} from "../lib/searchConditionBuilder";
 import {Authorization} from "../../generated/prisma";
 import {saveBase64File} from "../lib/fileUtilities";
-import {AuthorizationChanges} from "../lib/changeTypes";
 import {NotFoundError} from "../lib/errors";
+import {acceptDateString} from "../lib/fieldValidatePlugin";
 
-export async function createAuthorization (prisma: any, auth: any, unitId: number, newHolders: any[]) {
-	await ensurePerson(prisma, newHolders);
-	return await prisma.$transaction(async (tx: any) => {
-		const authorization = await tx.authorization.create({
-			data: {
-				authorization: auth.authorization,
-				status: auth.status,
-				creation_date: auth.creation_date,
-				expiration_date: auth.expiration_date,
-				id_unit: unitId,
-				renewals: 0,
-				type: auth.type,
-				authority: auth.authority
-			}
-		});
-
-		await setAuthorizationRelations(tx, Number(authorization.id_authorization), auth);
+export async function createAuthorization (tx: any, authorization: string, status: string, creationDate: Date, expirationDate: Date, type: string, authority: string, unitId: number) {
+	return await tx.Authorization.create({
+		data: {
+			authorization: authorization,
+			status: status,
+			creationDate: creationDate,
+			expirationDate: expirationDate,
+			idUnit: unitId,
+			renewals: 0,
+			type: type,
+			authority: authority
+		}
 	});
 }
 
@@ -33,24 +27,24 @@ export async function updateAuthorization (prisma: any, newData: any, oldAuth: a
 	}
 
 	async function doUpdateAuthorization (tx: any) {
-		const ren = newData.renewals ?? (newData.expiration_date.setHours(12,0,0,0) > oldAuth.expiration_date.setHours(12,0,0,0) ? (oldAuth.renewals + 1) : oldAuth.renewals);
+		const ren = newData.renewals ?? (acceptDateString(newData.expirationDate).setHours(12,0,0,0) > oldAuth.expirationDate.setHours(12,0,0,0) ? (oldAuth.renewals + 1) : oldAuth.renewals);
 		const data: any = {
 			status: newData.status,
-			expiration_date: newData.expiration_date,
+			expirationDate: acceptDateString(newData.expirationDate),
 			authority: newData.authority ?? oldAuth.authority,
 			renewals: ren,
-			date_expiry_notified: oldAuth.date_expiry_notified && ren > oldAuth.renewals ? null : oldAuth.date_expiry_notified
+			dateExpiryNotified: oldAuth.dateExpiryNotified && ren > oldAuth.renewals ? null : oldAuth.dateExpiryNotified
 		}
-		if (newData.id_unit) {
-			data['id_unit'] = newData.id_unit;
+		if (newData.idUnit) {
+			data['idUnit'] = newData.idUnit;
 		}
 
-		const updatedAuthorization = await tx.authorization.update(
-			{ where: { id_authorization: oldAuth.id_authorization },
+		const updatedAuthorization = await tx.Authorization.update(
+			{ where: { idAuthorization: oldAuth.idAuthorization },
 				data: data
 			});
 
-		await setAuthorizationRelations(tx, Number(updatedAuthorization.id_authorization), newData);
+		await setAuthorizationRelations(tx, Number(updatedAuthorization.idAuthorization), newData);
 	}
 }
 
@@ -77,11 +71,11 @@ export async function getAuthorizations (prisma: any, type: string, conditions?:
 		whereCondition.push({ status: status })
 	}
 	if (room) {
-		whereCondition.push({ authorization_has_room: { some: {room: {is: {name: {contains: room}}}} }})
+		whereCondition.push({ authorizationHasRoom: { some: {room: {is: {name: {contains: room}}}} }})
 	}
 	if (holder) {
 		whereCondition.push({
-			authorization_has_holder: {
+			authorizationHasHolder: {
 				some: {
 					holder: {
 						OR: [
@@ -96,22 +90,22 @@ export async function getAuthorizations (prisma: any, type: string, conditions?:
 		})
 	}
 	if (cas) {
-		whereCondition.push({ authorization_has_chemical: { some: {chemical: {
+		whereCondition.push({ authorizationHasChemical: { some: {chemical: {
 						OR: [
-							{ cas_auth_chem: { contains: cas } },
-							{ auth_chem_en: { contains: cas } }
+							{ casAuthChem: { contains: cas } },
+							{ authChemEn: { contains: cas } }
 						],
 					}} }})
 	}
 	if (source) {
-		whereCondition.push({ authorization_has_radiation: { some: {source: {contains: source}} }})
+		whereCondition.push({ authorizationHasRadiation: { some: {source: {contains: source}} }})
 	}
 
-	const authorizationList = await prisma.authorization.findMany({
+	const authorizationList = await prisma.Authorization.findMany({
 		where: {
 			AND: whereCondition
 		},
-		include: { authorization_has_chemical: { include: { chemical: true } } },
+		include: { authorizationHasChemical: { include: { chemical: true } } },
 		orderBy: [
 			{
 				authorization: 'asc',
@@ -125,12 +119,38 @@ export async function getAuthorizations (prisma: any, type: string, conditions?:
 	return { authorizations, totalCount };
 }
 
+export async function getAuthorizationByRoom (prisma: any, roomId: string, type: string) {
+	return await prisma.Authorization.findMany({
+		where: {
+			AND: [
+				{type: type},
+				{
+					authorizationHasRoom: {
+						some: {
+							room: {
+								is: {
+									id: roomId
+								}
+							}
+						}
+					}
+				}
+			]
+		},
+		orderBy: [
+			{
+				authorization: 'asc',
+			},
+		]
+	});
+}
+
 export async function getTheAuthorization (prisma: any, authNumber: string, type: string) {
 	const whereCondition = [];
 	whereCondition.push({ type: type})
 	whereCondition.push({ authorization: authNumber })
 
-	const authorizationList = await prisma.authorization.findMany({
+	const authorizationList = await prisma.Authorization.findMany({
 		where: {
 			AND: whereCondition
 		},
@@ -149,27 +169,25 @@ export async function getTheAuthorization (prisma: any, authNumber: string, type
 	}
 }
 
-async function setAuthorizationRelations (tx: any, id_authorization: number, changes: AuthorizationChanges) {
+export async function setAuthorizationRelations (tx: any, idAuthorization: number, changes: any) {
 	for ( const holder of changes.holders || []) {
 		if ( holder.status === 'New' ) {
 			let p = await tx.Person.findUnique({where: {sciper: holder.sciper}});
 
-			const relation = {
-				id_person: Number(p.id_person),
-				id_authorization: id_authorization
-			};
-			await tx.authorization_has_holder.create({
-				data: relation
+			await tx.AuthorizationHasHolder.create({
+				data: {
+					idPerson: Number(p.idPerson),
+					idAuthorization: idAuthorization
+				}
 			});
 		} else if ( holder.status === 'Deleted' ) {
 			let p = await tx.Person.findUnique({where: {sciper: holder.sciper}});
 			if ( p ) {
-				const whereCondition = {
-					id_authorization: id_authorization,
-					id_person: p.id_person
-				};
-				await tx.authorization_has_holder.deleteMany({
-					where: whereCondition
+				await tx.AuthorizationHasHolder.deleteMany({
+					where: {
+						idAuthorization: idAuthorization,
+						idPerson: p.idPerson
+					}
 				});
 			}
 		}
@@ -184,22 +202,20 @@ async function setAuthorizationRelations (tx: any, id_authorization: number, cha
 				r = await tx.Room.findUnique({where: {id: room.id, isDeleted: false}})
 			}
 			if ( !r ) throw new Error(`Authorization not created: room not found`);
-			const relation = {
-				id_lab: Number(r.id),
-				id_authorization: id_authorization
-			};
-			await tx.authorization_has_room.create({
-				data: relation
+			await tx.AuthorizationHasRoom.create({
+				data: {
+					idLab: Number(r.id),
+					idAuthorization: idAuthorization
+				}
 			});
 		} else if ( room.status === 'Deleted' ) {
 			let p = await tx.Room.findFirst({where: {name: room.name}});
 			if ( p ) {
-				const whereCondition = {
-					id_authorization: id_authorization,
-					id_lab: p.id
-				};
-				await tx.authorization_has_room.deleteMany({
-					where: whereCondition
+				await tx.AuthorizationHasRoom.deleteMany({
+					where: {
+						idAuthorization: idAuthorization,
+						idLab: p.id
+					}
 				});
 			}
 		}
@@ -207,48 +223,44 @@ async function setAuthorizationRelations (tx: any, id_authorization: number, cha
 
 	for ( const source of changes.radiations || []) {
 		if ( source.status === 'New' ) {
-			const relation = {
-				id_authorization: id_authorization,
-				source: source.name
-			};
-			await tx.authorization_has_radiation.create({
-				data: relation
+			await tx.AuthorizationHasRadiation.create({
+				data: {
+					idAuthorization: idAuthorization,
+					source: source.name
+				}
 			});
 		} else if ( source.status === 'Deleted' ) {
-			const whereCondition = {
-				id_authorization: id_authorization,
-				source: source.name
-			};
-			await tx.authorization_has_radiation.deleteMany({
-				where: whereCondition
+			await tx.AuthorizationHasRadiation.deleteMany({
+				where: {
+					idAuthorization: idAuthorization,
+					source: source.name
+				}
 			});
 		}
 	}
 
 	for ( const cas of changes.cas || []) {
 		if ( cas.status === 'New' ) {
-			let p = await tx.auth_chem.findUnique({where: {cas_auth_chem: cas.name}});
+			let p = await tx.AuthChem.findUnique({where: {casAuthChem: cas.name}});
 
 			if ( !p ) {
 				throw new NotFoundError(`CAS ${cas.name} not found`);
 			}
 
-			const relation = {
-				id_chemical: Number(p.id_auth_chem),
-				id_authorization: id_authorization
-			};
-			await tx.authorization_has_chemical.create({
-				data: relation
+			await tx.AuthorizationHasChemical.create({
+				data: {
+					idChemical: Number(p.idAuthChem),
+					idAuthorization: idAuthorization
+				}
 			});
 		} else if ( cas.status === 'Deleted' ) {
-			let p = await tx.auth_chem.findUnique({where: {cas_auth_chem: cas.name}});
+			let p = await tx.AuthChem.findUnique({where: {casAuthChem: cas.name}});
 			if (p) {
-				const whereCondition = {
-					id_authorization: id_authorization,
-					id_chemical: p.id_auth_chem
-				};
-				await tx.authorization_has_chemical.deleteMany({
-					where: whereCondition
+				await tx.AuthorizationHasChemical.deleteMany({
+					where: {
+						idAuthorization: idAuthorization,
+						idChemical: p.idAuthChem
+					}
 				});
 			}
 		}
@@ -258,15 +270,15 @@ async function setAuthorizationRelations (tx: any, id_authorization: number, cha
 		if ( file.status === 'New' ) {
 			await tx.AuthorizationHasFile.create({
 				data: {
-					id_authorization: id_authorization,
-					file_path: saveBase64File(file.base64, process.env.AUTHORIZATION_DOCUMENT_FOLDER + '/' + id_authorization + '/', file.path)
+					idAuthorization: idAuthorization,
+					filePath: saveBase64File(file.base64, process.env.AUTHORIZATION_DOCUMENT_FOLDER + '/' + idAuthorization + '/', file.path)
 				}
 			});
 		} else if ( file.status === 'Deleted' ) {
 			await tx.AuthorizationHasFile.deleteMany({
 				where: {
-					id_authorization: id_authorization,
-					file_path: file.path
+					idAuthorization: idAuthorization,
+					filePath: file.path
 				}
 			});
 		}
@@ -274,18 +286,18 @@ async function setAuthorizationRelations (tx: any, id_authorization: number, cha
 }
 
 export async function expireAuthorization (tx: any, auth: Authorization) {
-	return await tx.authorization.update({
-		where: { id_authorization: auth.idAuthorization },
+	return await tx.Authorization.update({
+		where: { idAuthorization: auth.idAuthorization },
 		data: {
 			status: 'Expired',
-			expiration_date: new Date()
+			expirationDate: new Date()
 		}
 	});
 }
 
 export async function setAuthorizationNotified (tx: any, auth: Authorization) {
-	return await tx.authorization.update({
-		where: { id_authorization: auth.idAuthorization },
+	return await tx.Authorization.update({
+		where: { idAuthorization: auth.idAuthorization },
 		data: {
 			date_expiry_notified: new Date()
 		}
@@ -297,7 +309,7 @@ export async function getExpiringAuthorizations (prisma: any, expiringInDays: nu
 	expirationDay.setDate(expirationDay.getDate() + expiringInDays);
 
 	const conditions: any = {
-		expiration_date: {
+		expirationDate: {
 			lt: expirationDay     // less than `expiringInDays` from now
 		},
 		status: 'Active'

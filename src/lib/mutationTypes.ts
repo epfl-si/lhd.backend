@@ -11,7 +11,7 @@ export const OthersMutationType = builder.inputType('OthersMutationType', {
 export const HolderMutationType = builder.inputType('HolderMutationType', {
 	fields: (t) => ({
 		status: t.string({ required: true }),
-		sciper: t.string({ required: true }),
+		sciper: t.int({ required: true }),
 	}),
 });
 
