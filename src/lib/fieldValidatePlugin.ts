@@ -1,3 +1,5 @@
+import {booleanRegexp} from "./lhdValidators";
+
 export function sanitizeBase64DataUrl(value: string) {
 	const prefixMatch = value.match(/^data:[^;]+;base64,/);
 	if (!prefixMatch)
@@ -90,4 +92,16 @@ export const acceptJson = (i: string) => {
 	} catch (e) {
 		throw new Error(`Bad format for ${i}`);
 	}
+}
+
+export const acceptBooleanString = (i: string) => {
+	if (!booleanRegexp.test(i.toLowerCase())) throw new Error(`Bad format for ${i}`);
+	return i;
+}
+
+export const acceptSubstringInList = (i: string, availableItems: string[]) => {
+	const keyword = availableItems
+		.find(status => status.toLowerCase().includes(i.toLowerCase()));
+	if (keyword === undefined) throw new Error(`Not in ${availableItems.join(', ')}`);
+	return keyword;
 }

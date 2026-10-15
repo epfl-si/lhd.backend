@@ -110,7 +110,7 @@ export async function sendEmailsForHazards (
 }
 
 export async function sendEmailsForChemical (prisma: any, userEmail: string, oldChemical?: AuthChem, newChemical?: AuthChem) {
-	const chemicals = await prisma.auth_chem.findMany({where: {flag_auth_chem: true}});
+	const chemicals = await prisma.AuthChem.findMany({where: {flagAuthChem: true}});
 	const template = chemical;
 	const body = template.body
 		.replaceAll("{{action}}", oldChemical && newChemical ?

@@ -1,19 +1,30 @@
-import {AuthChem} from "../../generated/prisma";
-import {sendEmailsForChemical} from "../lib/email/mailer";
+export async function createChemical (tx: any, chemical: any) {
+	return await tx.AuthChem.create({
+		data: {
+			casAuthChem: chemical.casAuthChem,
+			authChemEn: chemical.authChemEn,
+			flagAuthChem: chemical.flagAuthChem,
+			fastway: chemical.fastway ?? false,
+			authCode: chemical.authCode
+		}
+	});
+}
 
-export async function createChemical (chemical: AuthChem, {prisma, user}: any) {
-	const newChem = await prisma.$transaction(async (tx: any) => {
-		return await tx.auth_chem.create({
+export async function updateChemical (tx: any, idAuthChem: number, chemical: any) {
+	return await tx.AuthChem.update(
+		{ where: { idAuthChem: idAuthChem },
 			data: {
-				cas_auth_chem: chemical.casAuthChem,
-				auth_chem_en: chemical.authChemEn,
-				flag_auth_chem: chemical.flagAuthChem,
+				casAuthChem: chemical.casAuthChem,
+				authChemEn: chemical.authChemEn,
+				flagAuthChem: chemical.flagAuthChem,
 				fastway: chemical.fastway ?? false,
-				auth_code: chemical.authCode
+				authCode: chemical.authCode
 			}
 		});
-	});
-	await sendEmailsForChemical(prisma, user.userEmail, undefined, newChem);
+}
+
+export async function deleteChemical (tx: any, idAuthChem: number) {
+	await tx.AuthChem.delete({ where: { idAuthChem: idAuthChem }});
 }
 
 export async function getChemicals (prisma: any, opts?: Partial<{
@@ -28,28 +39,28 @@ export async function getChemicals (prisma: any, opts?: Partial<{
 	const { name, status, cas, fastway, authCode, take, skip } = opts || {};
 	const whereCondition = [];
 	if (cas) {
-		whereCondition.push({ cas_auth_chem: { contains: cas }})
+		whereCondition.push({ casAuthChem: { contains: cas }})
 	}
 	if (name) {
-		whereCondition.push({ auth_chem_en : { contains: name }})
+		whereCondition.push({ authChemEn : { contains: name }})
 	}
 	if (status !== undefined) {
-		whereCondition.push({ flag_auth_chem : status })
+		whereCondition.push({ flagAuthChem : status })
 	}
 	if (fastway) {
 		whereCondition.push({ fastway: ['yes', '1', 'true'].indexOf(fastway.toLowerCase()) > -1})
 	}
 	if (authCode) {
-		whereCondition.push({ auth_code: { contains: authCode }})
+		whereCondition.push({ authCode: { contains: authCode }})
 	}
 
-	const chemicalList = await prisma.auth_chem.findMany({
+	const chemicalList = await prisma.AuthChem.findMany({
 		where: {
 			AND: whereCondition
 		},
 		orderBy: [
 			{
-				cas_auth_chem: 'asc',
+				casAuthChem: 'asc',
 			},
 		]
 	});
