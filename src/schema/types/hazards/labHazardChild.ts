@@ -2,9 +2,11 @@ import {builder} from "../../builder";
 import {OpLock, OptimisticLock} from "../../../lib/optimisticLock";
 import {LabHasHazardsChild, Prisma} from "../../../../generated/prisma";
 import {z} from "zod";
-import {alphanumericRegexp, hazardCategoryNameRegexp, roomNameRegexp} from "../../../lib/lhdValidators";
+import {alphanumericRegexp, hazardCategoryNameRegexp, opLockValidator} from "../../../lib/lhdValidators";
 import {sanitizeSearchString} from "../../../lib/searchStrings";
 import {getLabHasHazardToString} from "./labHazard";
+import {deleteLabHasHazard, deleteLabHasHazardChild, findLabHasHazardChildByParent} from "../../../model/labHazard";
+import {success} from "../../../lib/statuses";
 
 export const LabHazardChildRef = builder.prismaObject('LabHasHazardsChild', {
 	name: 'LabHasHazardsChild',
@@ -154,14 +156,14 @@ builder.queryType({
 					sql.length > 0 ? Prisma.sql`${Prisma.join(sql, ` AND `)}` : Prisma.sql`1=1`;
 
 				const rawQuery = Prisma.sql`select distinct l.lab_display as "labDisplay",
-l.id_lab,
+l.id_lab as "idLab",
 hc.hazard_category_name as "hazardCategoryName",
 lhh.submission as "parentSubmission",
 lhhc.submission as "childSubmission",
 lhhc.id_lab_has_hazards_child as "idLabHasHazardsChild",
 lhh.id_lab_has_hazards as "idLabHasHazards",
-lhhc.id_hazard_form_child_history,
-hfh.id_hazard_form_history,
+lhhc.id_hazard_form_child_history as "idHazardFormChildHistory",
+hfh.id_hazard_form_history as "idHazardFormHistory",
 lhhai.comment as "globalComment",
 lhhai.modified_by as "modifiedBy",
 lhhai.modified_on as "modifiedOn",
@@ -177,10 +179,8 @@ inner join hazard_category hc on hc.id_hazard_category = hf.id_hazard_category
 inner join lab l on l.id_lab = lhh.id_lab
 left join unit_has_room uhr on uhr.id_lab = l.id_lab
 left join unit u on u.id_unit = uhr.id_unit
-left join unit_has_cosec uhc on uhc.id_unit = u.id_unit
-left join person cos on cos.id_person = uhc.id_person
-left join subunpro s on s.id_unit = u.id_unit
-left join person prof on s.id_person = prof.id_person
+left join unit_has_profile uhp on uhp.id_unit = u.id_unit
+left join person cos on cos.id_person = uhp.id_person
 left join institut i on i.id_institut = u.id_institut
 left join faculty f on f.id_faculty = i.id_faculty
 left join lab_has_hazards_additional_info lhhai on lhhai.id_lab = l.id_lab
@@ -192,19 +192,46 @@ order by l.lab_display asc
 				const hazardList = await ctx.prisma.$queryRaw<any[]>`${rawQuery}`;
 				const hazardsFiltered = args.take == 0 ? hazardList : hazardList.slice(args.skip, (args.skip ?? 0) + (args.take ?? 20));
 				const hazards = hazardsFiltered.map((h: any) => {
-					if (h.id_lab_has_hazards_child) {
-						h.submission = h.child_submission;
-						const encryptedID = OptimisticLock.obfuscate({id: h.id_lab_has_hazards_child, obj: getLabHasHazardChildToString(h)});
-						h.id_lab_has_hazards_child = JSON.stringify(encryptedID);
+					if (h.idLabHasHazardsChild) {
+						h.submission = h.childSubmission;
+						const encryptedID = OptimisticLock.obfuscate({id: h.idLabHasHazardsChild, obj: getLabHasHazardChildToString(h)});
+						h.idLabHasHazardsChild = JSON.stringify(encryptedID);
 					}
-					h.submission = h.parent_submission;
-					const encryptedIDForParent = OptimisticLock.obfuscate({id: h.id_lab_has_hazards, obj: getLabHasHazardToString(h)});
-					h.id_lab_has_hazards = JSON.stringify(encryptedIDForParent);
+					h.submission = h.parentSubmission;
+					const encryptedIDForParent = OptimisticLock.obfuscate({id: h.idLabHasHazards, obj: getLabHasHazardToString(h)});
+					h.idLabHasHazards = JSON.stringify(encryptedIDForParent);
 					return h;
 				});
 				const totalCount = hazardList.length;
 
 				return {hazards, totalCount};
+			},
+		}),
+	}),
+});
+
+builder.mutationType({
+	fields: (t) => ({
+		deleteHazardChild: t.string({
+			authScopes: {
+				needPermission: 'canEditHazards'
+			},
+			args: {
+				opLock: t.arg.string({required: true, validate: opLockValidator}),
+			},
+			resolve: async (root, args, ctx: any) => {
+				return await ctx.prisma.$transaction(async (tx: any) => {
+					const opLock = OptimisticLock.getOpLock(args.opLock);
+					OptimisticLock.checkOpLock(opLock);
+					const child = await getLabHasHazardChildOriginalObject(tx, opLock, 'Hazard');
+
+					await deleteLabHasHazardChild(tx, child.idLabHasHazardsChild);
+					const labHasHazards = await findLabHasHazardChildByParent(tx, child.idLabHasHazards);
+					if (labHasHazards.length == 0) {
+						await deleteLabHasHazard(tx, child.idLabHasHazards);
+					}
+					return success();
+				});
 			},
 		}),
 	}),

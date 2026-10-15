@@ -2,7 +2,13 @@ import {builder} from "../../builder";
 import {OpLock, OptimisticLock, submission} from "../../../lib/optimisticLock";
 import {LabHasHazards} from "../../../../generated/prisma";
 import {z} from "zod";
-import {fileContentValidator, hazardCategoryNameRegexp, pathRegexp, roomNameRegexp} from "../../../lib/lhdValidators";
+import {
+	fileContentValidator,
+	hazardCategoryNameRegexp,
+	opLockValidator,
+	pathRegexp,
+	roomNameRegexp
+} from "../../../lib/lhdValidators";
 import {acceptJson} from "../../../lib/fieldValidatePlugin";
 import {FileMutationInput} from "../../../lib/mutationTypes";
 import {AdditionalInfoType} from "./hazardAdditionalInfoFile";
@@ -11,7 +17,12 @@ import {getRoomWithUnitByName} from "../../../model/rooms";
 import {success} from "../../../lib/statuses";
 import {findHazardFormByCategory, findHazardFormHistory, updateLabHasHazardsChild} from "../../../model/hazardForm";
 import {findCategoryByName} from "../../../model/hazardCategory";
-import {createLabHasHazard, deleteHazard, updateLabHasHazard} from "../../../model/labHazard";
+import {
+	createLabHasHazard,
+	deleteLabHasHazard,
+	deleteLabHasHazardChildByParent,
+	updateLabHasHazard
+} from "../../../model/labHazard";
 import {
 	createAdditionalInfo,
 	findAdditionalInfoByCategoryAndLab,
@@ -127,7 +138,8 @@ builder.mutationType({
 								}
 							}
 							else if (h.submission.data['status'] === 'Deleted') {
-								await deleteHazard(tx, haz.idLabHasHazards);
+								await deleteLabHasHazardChildByParent(tx, haz.idLabHasHazards);
+								await deleteLabHasHazard(tx, haz.idLabHasHazards);
 							}
 						}
 					}
@@ -152,6 +164,24 @@ builder.mutationType({
 					})
 				});
 				await sendEmailsForHazards(ctx.prisma, args, roomResult, cosecs, ctx.user);
+				return success();
+			},
+		}),
+		deleteHazard: t.string({
+			authScopes: {
+				needPermission: 'canEditHazards'
+			},
+			args: {
+				opLock: t.arg.string({required: true, validate: opLockValidator}),
+			},
+			resolve: async (root, args, ctx: any) => {
+				await ctx.prisma.$transaction(async (tx: any) => {
+					const opLock = OptimisticLock.getOpLock(args.opLock);
+					OptimisticLock.checkOpLock(opLock);
+					const haz = await getLabHasHazardOriginalObject(tx, opLock, 'Hazard');
+					await deleteLabHasHazardChildByParent(tx, haz.idLabHasHazards);
+					await deleteLabHasHazard(tx, haz.idLabHasHazards);
+				});
 				return success();
 			},
 		}),
