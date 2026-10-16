@@ -51,11 +51,7 @@ export function checkAPICall({authorize, required, optional, validate} : {
 
 		function ensureValid (param: string, toValidate : string, validator: ValidatorType) : any {
 			if (validator === Number) {
-				const validated = Number(toValidate);
-				if (isNaN(validated)) {
-					throw new ValidationError(`Invalid number`);
-				}
-				return validated;
+				return validateNumber(toValidate);
 			} else if (validator === Date) {
 				const date = new Date(toValidate);
 				const validated = date.getTime();
@@ -64,12 +60,7 @@ export function checkAPICall({authorize, required, optional, validate} : {
 				}
 				return date;
 			} else if (validator instanceof RegExp) {
-				const anchored = new RegExp(`^(?:${validator.source})$`, validator.flags);
-				if (anchored.test(toValidate)) {
-					return toValidate;
-				} else {
-					throw new ValidationError(`Failed Regex match`);
-				}
+				return validateRegexp(toValidate, validator);
 			} else if (typeof  validator === "function") {
 				return validator.call({
 					// Available as `this.validate(...)` in the function body
@@ -89,5 +80,22 @@ export function checkAPICall({authorize, required, optional, validate} : {
 			req.params = params;
 			next();
 		}
+	}
+}
+
+export function validateNumber (toValidate: any) {
+	const validated = Number(toValidate);
+	if (isNaN(validated)) {
+		throw new ValidationError(`Invalid number`);
+	}
+	return validated;
+}
+
+export function validateRegexp (toValidate: any, validator: RegExp) {
+	const anchored = new RegExp(`^(?:${validator.source})$`, validator.flags);
+	if (anchored.test(toValidate)) {
+		return toValidate;
+	} else {
+		throw new ValidationError(`Failed Regex match`);
 	}
 }

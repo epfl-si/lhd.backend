@@ -13,6 +13,8 @@ import {makeRESTFilesAPI} from "../file/files";
 import {makeRESTHealthAPI} from "../api/monitoring";
 import {redirectToLIL} from "../api/lil";
 import fs from "fs/promises";
+import {makeRESTAxsAPI} from "../api/axs";
+import {makeRESTAPI} from "../api/catalyseSnow";
 
 export async function makeServer() {
   const app = express();
@@ -45,6 +47,8 @@ export async function makeServer() {
     res.send(html)
   })
 
+  app.use("/api", makeRESTAPI());
+  app.use("/axs", makeRESTAxsAPI());
   app.use("/files", makeRESTFilesAPI());
   app.use("/health", makeRESTHealthAPI());
   app.use("/lhd_cosecs/barcodes", redirectToLIL());

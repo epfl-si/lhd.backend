@@ -4,7 +4,7 @@ import {saveBase64File} from "../lib/fileUtilities";
 import {NotFoundError} from "../lib/errors";
 import {acceptDateString} from "../lib/fieldValidatePlugin";
 
-export async function createAuthorization (tx: any, authorization: string, status: string, creationDate: Date, expirationDate: Date, type: string, authority: string, unitId: number) {
+export async function createAuthorization (tx: any, authorization: string, status: string, creationDate: Date, expirationDate: Date, type: string, unitId: number, authority?: string) {
 	return await tx.Authorization.create({
 		data: {
 			authorization: authorization,
@@ -20,6 +20,10 @@ export async function createAuthorization (tx: any, authorization: string, statu
 }
 
 export async function updateAuthorization (prisma: any, newData: any, oldAuth: any, tx = undefined) {
+	let newDate = newData.expirationDate;
+	if (typeof newDate === 'string') {
+		newDate = acceptDateString(newData.expirationDate);
+	}
 	if (tx) {
 		await doUpdateAuthorization(tx);
 	} else {
@@ -27,10 +31,10 @@ export async function updateAuthorization (prisma: any, newData: any, oldAuth: a
 	}
 
 	async function doUpdateAuthorization (tx: any) {
-		const ren = newData.renewals ?? (acceptDateString(newData.expirationDate).setHours(12,0,0,0) > oldAuth.expirationDate.setHours(12,0,0,0) ? (oldAuth.renewals + 1) : oldAuth.renewals);
+		const ren = newData.renewals ?? (newDate.setHours(12,0,0,0) > oldAuth.expirationDate.setHours(12,0,0,0) ? (oldAuth.renewals + 1) : oldAuth.renewals);
 		const data: any = {
 			status: newData.status,
-			expirationDate: acceptDateString(newData.expirationDate),
+			expirationDate: newDate,
 			authority: newData.authority ?? oldAuth.authority,
 			renewals: ren,
 			dateExpiryNotified: oldAuth.dateExpiryNotified && ren > oldAuth.renewals ? null : oldAuth.dateExpiryNotified

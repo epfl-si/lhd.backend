@@ -1,6 +1,6 @@
 import {OptimisticLock} from "./optimisticLock";
 import {z} from "zod";
-import {ValidationError} from "../../api/lib/checkedAPICalls";
+import {validateNumber, validateRegexp, ValidationError} from "../../api/lib/checkedAPICalls";
 import {sanitizeBase64DataUrl} from "./fieldValidatePlugin";
 
 export const fileNameRegexp = new RegExp(/^[\p{L}\p{N}, _\-\(\)\.]+\.[A-Za-z0-9]+$/u);
@@ -18,6 +18,7 @@ export const chemicalNameRegexp = new RegExp("[A-Za-z0-9\\/()*+\"%&='?\\[\\]\\{\
 export const authCodeRegexp = new RegExp(/^[a-zA-Z]*$/);
 export const booleanRegexp = new RegExp("yes|no|1|0|true|false");
 export const reqRegexp = new RegExp("[A-Z][a-zA-Z0-9.]*-[a-zA-Z0-9.]*");
+export const reqRenewRegexp = new RegExp("[A-Z][a-zA-Z0-9.]*-[a-zA-Z0-9.]*-[0-9]*");
 export const dbNamesRegexp = new RegExp(/^[a-zA-Z_]*$/);
 
 export const saltRegexp = new RegExp("[a-f0-9]+");
@@ -44,3 +45,8 @@ export const fileContentValidator = z.string().optional().refine(
 		message: 'Invalid file content',
 	}
 )
+
+export function validateCommaSeparatedNumbers  (p: string) { return p.split(',').map(r => validateNumber(r)) }
+
+export function validateCASList (p: string) { return p.split(',').map(r => validateRegexp(r, casRegexp)) }
+export const singleCAS = casRegexp;

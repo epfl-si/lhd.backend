@@ -36,6 +36,7 @@ import {success} from "../../../lib/statuses";
 import {ensurePerson} from "../../../model/persons";
 import authorization_status = $Enums.authorization_status;
 import {getRoomOriginalObject} from "../room";
+import {AuthChemRef} from "./chemicals";
 
 const AuthorizationRef = builder.prismaObject('Authorization', {
 	name: 'Authorization',
@@ -81,7 +82,7 @@ const AuthorizationRef = builder.prismaObject('Authorization', {
 			},
 		}),
 		authorizationChemicals: t.field({
-			type: ['AuthChem'],
+			type: [AuthChemRef],
 			resolve: async (parent: any, _: any, context: any) => {
 				const authorizationsAndChemical = await context.prisma.AuthorizationHasChemical.findMany({
 					where: { idAuthorization: parent.idAuthorization }
@@ -256,7 +257,7 @@ builder.mutationType({
 				const newHolders = (args.holders ?? []).filter(holder => holder.status === 'New');
 				await ensurePerson(ctx.prisma, newHolders);
 				await ctx.prisma.$transaction(async (tx: any) => {
-					const authorization = await createAuthorization (tx, args.authorization, args.status, acceptDateString(args.creationDate), acceptDateString(args.expirationDate), args.type, args.authority, unit.id)
+					const authorization = await createAuthorization (tx, args.authorization, args.status, acceptDateString(args.creationDate), acceptDateString(args.expirationDate), args.type, unit.id, args.authority);
 					await setAuthorizationRelations(tx, Number(authorization.idAuthorization),
 						{
 							holders: args.holders,
