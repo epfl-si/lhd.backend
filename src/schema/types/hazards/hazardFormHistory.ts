@@ -1,5 +1,4 @@
 import {builder} from "../../builder";
-import {HazardFormRef} from "./hazardForm";
 
 export const HazardFormHistoryRef = builder.prismaObject('HazardFormHistory', {
 	name: 'HazardFormHistory',

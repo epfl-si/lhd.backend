@@ -30,10 +30,10 @@ import {
   OthersMutationType,
   StringMutationType
 } from "../../../lib/mutationTypes";
-import DispensationStatus = $Enums.DispensationStatus;
 import {ensurePerson} from "../../../model/persons";
 import {sendEmailForDispensation} from "../../../lib/email/mailer";
 import {success} from "../../../lib/statuses";
+import DispensationStatus = $Enums.DispensationStatus;
 
 const DispensationRef = builder.prismaObject('Dispensation', {
   name: 'Dispensation',

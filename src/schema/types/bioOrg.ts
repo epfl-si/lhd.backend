@@ -50,7 +50,7 @@ const BioOrgListResult = builder.objectRef<{
 builder.queryType({
 	fields: (t) => ({
 		bioOrgs: t.prismaField({
-			type: ['BioOrg'],
+			type: [BioOrgRef],
 			authScopes: {
 				needPermission: 'canListOrganisms'
 			},

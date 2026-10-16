@@ -108,7 +108,7 @@ builder.mutationType({
 				opLock: t.arg.string({required: true, validate: opLockValidator}),
 			},
 			resolve: async (root, args, ctx: any) => {
-				return await ctx.prisma.$transaction(async (tx) => {
+				return await ctx.prisma.$transaction(async (tx: any) => {
 					const tag = await getLabHasHazardsAdditionalInfoHasTagOriginalObject(tx, args.opLock, 'Additional Info');
 
 					await deleteTagForAdditionalInfo(tx, tag.idHazardsAdditionalInfoHasTag);

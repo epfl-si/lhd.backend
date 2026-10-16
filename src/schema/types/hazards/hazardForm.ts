@@ -7,7 +7,8 @@ import {
 	createHazardCategory,
 	createHazardForm,
 	createHazardFormHistory,
-	findHazardFormByCategoryName, updateHazardForm
+	findHazardFormByCategoryName,
+	updateHazardForm
 } from "../../../model/hazardForm";
 import {acceptJson} from "../../../lib/fieldValidatePlugin";
 import {success} from "../../../lib/statuses";

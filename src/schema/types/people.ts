@@ -33,7 +33,7 @@ export const PersonResult = builder.objectRef<PersonShape>('PersonResult').imple
 builder.queryType({
 	fields: (t) => ({
 		people: t.prismaField({
-			type: ['Person'],
+			type: [PersonRef],
 			authScopes: {
 				needPermission: 'canListPeople'
 			},
@@ -53,7 +53,7 @@ builder.queryType({
 			resolve: async (root, args, ctx: any) => {
 				const lhdPeople = await findPersonByName(ctx, args.search);
 				const lhdPeopleTyped = lhdPeople.map((p: any) => ({
-					type: 'Person',
+					type: PersonRef,
 					name: p.name,
 					surname: p.surname,
 					email: p.email,

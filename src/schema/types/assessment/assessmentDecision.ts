@@ -288,7 +288,7 @@ builder.mutationType({
         }),
       },
       resolve: async (root, args, ctx: any) => {
-        const ass = await getAssessmentDecisionOriginalObject(ctx.prisma, args.opLock,'AssessmentDecision');
+        const ass = await getAssessmentDecisionOriginalObject(ctx.prisma, args.opLock, 'AssessmentDecision');
         const subject = await ctx.prisma.AssessmentDecisionSubject.findUnique({where: {subject: args.subject}});
         const newcontacts = (args.contacts ?? []).filter(contact => contact.status === 'New');
         await ensurePerson(ctx.prisma, newcontacts);
@@ -308,7 +308,7 @@ builder.mutationType({
         opLock: t.arg.string({required: true, validate: opLockValidator}),
       },
       resolve: async (root, args, ctx: any) => {
-        const ass = await getAssessmentDecisionOriginalObject(ctx.prisma, args.opLock,'AssessmentDecision');
+        const ass = await getAssessmentDecisionOriginalObject(ctx.prisma, args.opLock, 'AssessmentDecision');
         await ctx.prisma.$transaction(async (tx: any) => {
           await tx.AssessmentDecisionHasRoom.deleteMany({ where: { idAssessmentAndDecision: ass.idAssessmentAndDecision }});
           await tx.AssessmentDecisionHasContact.deleteMany({ where: { idAssessmentAndDecision: ass.idAssessmentAndDecision }});

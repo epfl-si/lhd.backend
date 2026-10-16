@@ -1,6 +1,6 @@
 import {builder} from "../../builder";
 import {OptimisticLock} from "../../../lib/optimisticLock";
-import {getUnitOriginalObject, UnitRef} from "../unit";
+import {getUnitOriginalObject} from "../unit";
 import {
 	$Enums,
 	Authorization,
@@ -22,11 +22,12 @@ import {
 	fileContentValidator,
 	opLockValidator,
 	pathRegexp,
-	reqRegexp, roomNameRegexp
+	reqRegexp
 } from "../../../lib/lhdValidators";
 import {acceptDateString, acceptSubstringInList, fromSanitizer} from "../../../lib/fieldValidatePlugin";
 import {
-	createAuthorization, getAuthorizationByRoom,
+	createAuthorization,
+	getAuthorizationByRoom,
 	getAuthorizations,
 	setAuthorizationRelations,
 	updateAuthorization
@@ -34,9 +35,8 @@ import {
 import {FileMutationInput, HolderMutationType, OthersMutationType} from "../../../lib/mutationTypes";
 import {success} from "../../../lib/statuses";
 import {ensurePerson} from "../../../model/persons";
-import authorization_status = $Enums.authorization_status;
 import {getRoomOriginalObject} from "../room";
-import {AuthChemRef} from "./chemicals";
+import authorization_status = $Enums.authorization_status;
 
 const AuthorizationRef = builder.prismaObject('Authorization', {
 	name: 'Authorization',
@@ -50,7 +50,7 @@ const AuthorizationRef = builder.prismaObject('Authorization', {
 		authority: t.exposeString('authority'),
 		dateExpiryNotified: t.expose('dateExpiryNotified', { type: 'DateTime' }),
 		unit: t.field({
-			type: UnitRef,
+			type: 'Unit',
 			resolve: async (parent: any, _: any, context: any) => {
 				return await context.prisma.Unit.findUnique({
 					where: { id: parent.idUnit ?? 0 }
@@ -82,7 +82,7 @@ const AuthorizationRef = builder.prismaObject('Authorization', {
 			},
 		}),
 		authorizationChemicals: t.field({
-			type: [AuthChemRef],
+			type: ['AuthChem'],
 			resolve: async (parent: any, _: any, context: any) => {
 				const authorizationsAndChemical = await context.prisma.AuthorizationHasChemical.findMany({
 					where: { idAuthorization: parent.idAuthorization }
