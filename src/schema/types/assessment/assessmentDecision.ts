@@ -1,11 +1,37 @@
 import {builder} from "../../builder";
 import {OptimisticLock} from "../../../lib/optimisticLock";
 import {
+  $Enums,
   AssessmentDecision,
   AssessmentDecisionHasContact,
   AssessmentDecisionHasRoom,
   AssessmentDecisionHasUnit
 } from "../../../../generated/prisma";
+import {z} from "zod";
+import {sanitizeHolderMutationTypes, sanitizeMutationTypes, sanitizeSearchString} from "../../../lib/searchStrings";
+import {
+  alphanumericRegexp,
+  fileContentValidator,
+  freeFormTextRegexp,
+  opLockValidator,
+  pathRegexp
+} from "../../../lib/lhdValidators";
+import {acceptDateString, acceptSubstringInList, fromSanitizer} from "../../../lib/fieldValidatePlugin";
+import {
+  FileMutationInput,
+  HolderMutationType,
+  OthersMutationType,
+  StringMutationType
+} from "../../../lib/mutationTypes";
+import {ensurePerson} from "../../../model/persons";
+import {success} from "../../../lib/statuses";
+import {
+  createAssessmentDecision,
+  getAssessments,
+  setAssessmentDecisionRelations,
+  updateAssessmentDecision
+} from "../../../model/assessmentDecision";
+import AssessmentDecisionStatus = $Enums.AssessmentDecisionStatus;
 
 const AssessmentDecisionRef = builder.prismaObject('AssessmentDecision', {
   name: 'AssessmentDecision',
@@ -95,16 +121,16 @@ const AssessmentDecisionRef = builder.prismaObject('AssessmentDecision', {
 export function getAssessmentDecisionToString(parent: AssessmentDecision) {
   return {
     id: parent.idAssessmentAndDecision,
-    id_assessment_and_decision_subject: parent.idAssessmentAndDecisionSubject,
-    subject_other: parent.subjectOther,
+    idAssessmentAndDecisionSubject: parent.idAssessmentAndDecisionSubject,
+    subjectOther: parent.subjectOther,
     description: parent.description,
     conclusion: parent.conclusion,
     status: parent.status,
     date: parent.date,
-    created_by: parent.createdBy,
-    created_on: parent.createdOn,
-    modified_by: parent.modifiedBy,
-    modified_on: parent.modifiedOn
+    createdBy: parent.createdBy,
+    createdOn: parent.createdOn,
+    modifiedBy: parent.modifiedBy,
+    modifiedOn: parent.modifiedOn
   };
 }
 
@@ -112,3 +138,187 @@ export async function getAssessmentDecisionOriginalObject (tx: any, opLock: stri
   return await OptimisticLock.ensureDBObjectIsTheSame(opLock, 'AssessmentDecision', 'idAssessmentAndDecision', tx, name, getAssessmentDecisionToString);
 }
 
+const AssessmentDecisionsListResult = builder.objectRef<{
+  totalCount: number;
+  assessment: any[];
+}>('AssessmentDecisionsListResult').implement({
+  fields: (t) => ({
+    totalCount: t.exposeInt('totalCount'),
+    assessment: t.field({
+      type: [AssessmentDecisionRef],
+      resolve: (parent) => parent.assessment,
+    }),
+  }),
+});
+
+const searchSpec = {
+  Unit: {rename: 'unit', validate: alphanumericRegexp},
+  Assessment: {rename: 'assessment', validate: alphanumericRegexp},
+  Status: {rename: 'status', validate: (value: string) => acceptSubstringInList(value, Object.values(AssessmentDecisionStatus))},
+  Room: {rename: 'room', validate: alphanumericRegexp},
+  Contact: {rename: 'contact', validate: alphanumericRegexp},
+  Subject: {rename: 'subject', validate: alphanumericRegexp},
+  Ticket: {rename: 'ticket', validate: alphanumericRegexp},
+  Before: {rename: 'before', validate: acceptDateString},
+  After: {rename: 'after', validate: acceptDateString},
+};
+
+const searchSchema = z
+  .string()
+  .superRefine((s, ctx) => {
+    try {
+      sanitizeSearchString(s, searchSpec);
+    } catch (e) {
+      ctx.addIssue({
+        code: 'custom',
+        message: `Invalid search parameters: ${(e as Error).message}`,
+      });
+    }
+  })
+  .nullish();
+
+builder.queryType({
+  fields: (t) => ({
+    assessmentWithPagination: t.field({
+      type: AssessmentDecisionsListResult,
+      args: {
+        search: t.arg.string({defaultValue: '', validate: searchSchema}),
+        skip: t.arg.int({defaultValue: 0, validate: z.number().int().min(0).nullish()}),
+        take: t.arg.int({defaultValue: 20, validate: z.number().int().min(0).nullish()}),
+      },
+      authScopes: {
+        needPermission: 'canListAssessments'
+      },
+      resolve: async (root, args, ctx: any) => {
+        const search = sanitizeSearchString(args.search ?? '', searchSpec);
+        return await getAssessments(ctx.prisma, search, args.take ?? 20, args.skip ?? 0);
+      },
+    })
+  }),
+});
+
+builder.mutationType({
+  fields: (t) => ({
+    addAssessmentDecision: t.string({
+      authScopes: {
+        needPermission: 'canEditAssessments'
+      },
+      args: {
+        subject: t.arg.string({ required: true, validate: z.string().regex(alphanumericRegexp) }),
+        subjectOther: t.arg.string({ required: true, validate: z.string().regex(alphanumericRegexp) }),
+        description: t.arg.string({ required: true, validate: z.string().regex(freeFormTextRegexp) }),
+        conclusion: t.arg.string({ required: true, validate: z.string().regex(freeFormTextRegexp) }),
+        status: t.arg.string({ required: true, validate: z.enum(Object.values(AssessmentDecisionStatus)) }),
+        date: t.arg.string({ required: true, validate: fromSanitizer(acceptDateString) }),
+        rooms: t.arg({
+          type: [OthersMutationType],
+          validate: fromSanitizer(sanitizeMutationTypes),
+        }),
+        units: t.arg({
+          type: [OthersMutationType],
+          validate: fromSanitizer(sanitizeMutationTypes),
+        }),
+        contacts: t.arg({
+          type: [HolderMutationType],
+          validate: fromSanitizer(sanitizeHolderMutationTypes),
+        }),
+        tickets: t.arg({
+          type: [StringMutationType],
+          validate: fromSanitizer(sanitizeMutationTypes),
+        }),
+        files: t.arg({
+          type: [FileMutationInput],
+          required: { list: false, items: false },
+          validate: z.array(z.object({
+            status: z.enum(['New', 'Default', 'Deleted']),
+            base64: fileContentValidator,
+            path: z.string().regex(pathRegexp).optional(),
+          }),)
+        }),
+      },
+      resolve: async (root, args, ctx: any) => {
+        const subject = await ctx.prisma.AssessmentDecisionSubject.findUnique({where: {subject: args.subject}});
+        const newcontacts = (args.contacts ?? []).filter(contact => contact.status === 'New');
+        await ensurePerson(ctx.prisma, newcontacts);
+        await ctx.prisma.$transaction(async (tx: any) => {
+          const ass = await createAssessmentDecision(tx, ctx.user, subject.idDispensationSubject,
+            args.description, args.conclusion, args.subjectOther, args.status, acceptDateString(args.date));
+
+          await setAssessmentDecisionRelations(tx, ass.idAssessmentAndDecision, args);
+        });
+        return success();
+      },
+    }),
+    updateAssessmentDecision: t.string({
+      authScopes: {
+        needPermission: 'canEditAssessments'
+      },
+      args: {
+        opLock: t.arg.string({required: true, validate: opLockValidator}),
+        subject: t.arg.string({ required: true, validate: z.string().regex(alphanumericRegexp) }),
+        subjectOther: t.arg.string({ required: true, validate: z.string().regex(alphanumericRegexp) }),
+        description: t.arg.string({ required: true, validate: z.string().regex(freeFormTextRegexp) }),
+        conclusion: t.arg.string({ required: true, validate: z.string().regex(freeFormTextRegexp) }),
+        status: t.arg.string({ required: true, validate: z.enum(Object.values(AssessmentDecisionStatus)) }),
+        date: t.arg.string({ required: true, validate: fromSanitizer(acceptDateString) }),
+        rooms: t.arg({
+          type: [OthersMutationType],
+          validate: fromSanitizer(sanitizeMutationTypes),
+        }),
+        units: t.arg({
+          type: [OthersMutationType],
+          validate: fromSanitizer(sanitizeMutationTypes),
+        }),
+        contacts: t.arg({
+          type: [HolderMutationType],
+          validate: fromSanitizer(sanitizeHolderMutationTypes),
+        }),
+        tickets: t.arg({
+          type: [StringMutationType],
+          validate: fromSanitizer(sanitizeMutationTypes),
+        }),
+        files: t.arg({
+          type: [FileMutationInput],
+          required: { list: false, items: false },
+          validate: z.array(z.object({
+            status: z.enum(['New', 'Default', 'Deleted']),
+            base64: fileContentValidator,
+            path: z.string().regex(pathRegexp).optional(),
+          }),)
+        }),
+      },
+      resolve: async (root, args, ctx: any) => {
+        const ass = await getAssessmentDecisionOriginalObject(ctx.prisma, args.opLock,'AssessmentDecision');
+        const subject = await ctx.prisma.AssessmentDecisionSubject.findUnique({where: {subject: args.subject}});
+        const newcontacts = (args.contacts ?? []).filter(contact => contact.status === 'New');
+        await ensurePerson(ctx.prisma, newcontacts);
+        await ctx.prisma.$transaction(async (tx: any) => {
+          await updateAssessmentDecision(tx, ass.idAssessmentAndDecision, ctx.user, subject.idDispensationSubject,
+            args.description, args.conclusion, args.subjectOther, args.status, acceptDateString(args.date));
+          await setAssessmentDecisionRelations(tx, ass.idAssessmentAndDecision, args);
+        });
+        return success();
+      },
+    }),
+    deleteAssessmentDecision: t.string({
+      authScopes: {
+        needPermission: 'canEditAssessments'
+      },
+      args: {
+        opLock: t.arg.string({required: true, validate: opLockValidator}),
+      },
+      resolve: async (root, args, ctx: any) => {
+        const ass = await getAssessmentDecisionOriginalObject(ctx.prisma, args.opLock,'AssessmentDecision');
+        await ctx.prisma.$transaction(async (tx: any) => {
+          await tx.AssessmentDecisionHasRoom.deleteMany({ where: { idAssessmentAndDecision: ass.idAssessmentAndDecision }});
+          await tx.AssessmentDecisionHasContact.deleteMany({ where: { idAssessmentAndDecision: ass.idAssessmentAndDecision }});
+          await tx.AssessmentDecisionHasTicket.deleteMany({ where: { idAssessmentAndDecision: ass.idAssessmentAndDecision }});
+          await tx.AssessmentDecisionHasUnit.deleteMany({ where: { idAssessmentAndDecision: ass.idAssessmentAndDecision }});
+          await tx.AssessmentDecisionHasFile.deleteMany({ where: { idAssessmentAndDecision: ass.idAssessmentAndDecision }});
+          await tx.AssessmentDecision.delete({ where: { idAssessmentAndDecision: ass.idAssessmentAndDecision }});
+        });
+        return success();
+      },
+    }),
+  }),
+});
