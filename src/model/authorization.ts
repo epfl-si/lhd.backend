@@ -299,7 +299,7 @@ export async function setAuthorizationNotified (tx: any, auth: Authorization) {
 	return await tx.Authorization.update({
 		where: { idAuthorization: auth.idAuthorization },
 		data: {
-			date_expiry_notified: new Date()
+			dateExpiryNotified: new Date()
 		}
 	});
 }
@@ -316,10 +316,10 @@ export async function getExpiringAuthorizations (prisma: any, expiringInDays: nu
 	};
 
 	if (expiringInDays !== 0) {
-		conditions['date_expiry_notified'] = null;
+		conditions['dateExpiryNotified'] = null;
 	}
 
-	return await prisma.authorization.findMany({
+	return await prisma.Authorization.findMany({
 		where: conditions
 	});
 }

@@ -17,6 +17,7 @@ import {AuthChem, UnitHasProfile} from "../../../generated/prisma";
 import {getHazardLevel} from "../hazardsParser";
 import {getRoomWithHazards} from "../../model/rooms";
 import {getUserString, UserInfo} from "../userType";
+import "dotenv/config";
 
 export const mailer = nodemailer.createTransport({
 	host: process.env.SMTP_HOST,
@@ -146,6 +147,7 @@ export async function sendEmailForDispensation (modifiedByName: string,
 																'expiringDispensation'
 ) {
 	let template = newDispensation;
+	let status = dispensation.status;
 	switch ( action ) {
 		case "newDispensation":
 			template = newDispensation;
@@ -155,6 +157,7 @@ export async function sendEmailForDispensation (modifiedByName: string,
 			break;
 		case "expiredDispensation":
 			template = expiredDispensation;
+			status = 'Expired';
 			break;
 		case "modifiedDispensation":
 			template = modifiedDispensation;
@@ -173,7 +176,7 @@ export async function sendEmailForDispensation (modifiedByName: string,
 		.replaceAll("{{dateEnd}}", getFormattedDate(dispensation.dateEnd))
 		.replaceAll("{{requirements}}", dispensation.description)
 		.replaceAll("{{comments}}", dispensation.comment)
-		.replaceAll("{{status}}", dispensation.status)
+		.replaceAll("{{status}}", status)
 		.replaceAll("{{rooms}}", dispensation.dispensationHasRoom.map((dhr: any) => `<a href="${process.env.APP_BASE_PATH}/roomdetails?room=${dhr.room.name}">${dhr.room.name}</a>`).join(', '))
 		.replaceAll("{{holders}}", dispensation.dispensationHasHolder.map((dhr: any) => `${dhr.holder.name} ${dhr.holder.surname} (${dhr.holder.sciper})`).join(', '))
 		.replaceAll("{{tickets}}", dispensation.dispensationHasTicket.map((dhr: any) => `<a href="https://go.epfl.ch/${dhr.ticket_number}">${dhr.ticket_number}</a>`).join(', '))

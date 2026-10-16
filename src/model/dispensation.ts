@@ -8,8 +8,8 @@ export async function expireDispensation (tx: any, disp: Dispensation, userInfo:
 		where: { idDispensation: disp.idDispensation },
 		data: {
 			status: 'Expired',
-			modified_by: userInfo.userName,
-			modified_on: new Date()
+			modifiedBy: userInfo.userName,
+			modifiedOn: new Date()
 		}
 	});
 }
@@ -18,7 +18,7 @@ export async function setDispensationNotified (tx: any, disp: Dispensation) {
 	return await tx.Dispensation.update({
 		where: { idDispensation: disp.idDispensation },
 		data: {
-			date_expiry_notified: new Date()
+			dateExpiryNotified: new Date()
 		}
 	});
 }
@@ -41,14 +41,14 @@ export async function getExpiringDispensations (prisma: any, expiringInDays: num
 	expirationDay.setDate(expirationDay.getDate() + expiringInDays);
 
 	const conditions: any = {
-		date_end: {
+		dateEnd: {
 			lt: expirationDay     // less than `expiringInDays` from now
 		},
 		status: 'Active'
 	};
 
 	if (expiringInDays !== 0) {
-		conditions['date_expiry_notified'] = null;
+		conditions['dateExpiryNotified'] = null;
 	}
 	return await prisma.Dispensation.findMany({
 		where: conditions,
