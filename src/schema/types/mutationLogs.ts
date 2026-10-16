@@ -102,7 +102,7 @@ async function groupByModifiedOn(prisma: any, data: { modifiedOn: Date; modified
 	for (const entry of data) {
 		const diffs = await Promise.all(Object.entries(entry.diff).map(
 			async ([field, change]) => {
-				if (field === 'idDispensationSubject') {
+				if (field === 'id_dispensation_subject' || field === 'idDispensationSubject') {
 					const oldSubject = change["before"] ? await prisma.DispensationSubject.findUnique({where: {idDispensationSubject: Number(change["before"]) }}) : '';
 					const newSubject = change["after"] ? await prisma.DispensationSubject.findUnique({where: {idDispensationSubject: Number(change["after"]) }}) : '';
 					return {
@@ -111,7 +111,7 @@ async function groupByModifiedOn(prisma: any, data: { modifiedOn: Date; modified
 						after: newSubject ? `${newSubject.subject}` : ''
 					}
 				}
-				else if (field === 'idAssessmentAndDecisionSubject') {
+				else if (field === 'id_assessment_and_decision_subject' || field === 'idAssessmentAndDecisionSubject') {
 					const oldSubject = change["before"] ? await prisma.AssessmentDecisionSubject.findUnique({where: {idAssessmentAndDecisionSubject: Number(change["before"]) }}) : '';
 					const newSubject = change["after"] ? await prisma.AssessmentDecisionSubject.findUnique({where: {idAssessmentAndDecisionSubject: Number(change["after"]) }}) : '';
 					return {
@@ -120,7 +120,7 @@ async function groupByModifiedOn(prisma: any, data: { modifiedOn: Date; modified
 						after: newSubject ? `${newSubject.subject}` : ''
 					}
 				}
-				else if (field === 'idPerson') {
+				else if (field === 'id_person' || field === 'idPerson') {
 					const oldValue = change["before"] ? await prisma.person.findUnique({where: {idPerson: Number(change["before"]) }}) : undefined;
 					const newValue = change["after"] ? await prisma.person.findUnique({where: {idPerson: Number(change["after"]) }}) : undefined;
 					return {
@@ -129,7 +129,7 @@ async function groupByModifiedOn(prisma: any, data: { modifiedOn: Date; modified
 						after: newValue ? `${newValue.name} ${newValue.surname}` : ''
 					}
 				}
-				else if (field === 'idUnit') {
+				else if (field === 'id_unit' || field === 'idUnit') {
 					const oldValue = change["before"] ? await prisma.Unit.findUnique({where: {id: Number(change["before"]) }}) : undefined;
 					const newValue = change["after"] ? await prisma.Unit.findUnique({where: {id: Number(change["after"]) }}) : undefined;
 					return {
@@ -138,7 +138,7 @@ async function groupByModifiedOn(prisma: any, data: { modifiedOn: Date; modified
 						after: newValue ? newValue.name : ''
 					}
 				}
-				else if (field === 'idLab') {
+				else if (field === 'id_lab' || field === 'idLab') {
 					const oldValue = change["before"] ? await prisma.room.findUnique({where: {id: Number(change["before"]) }}) : undefined;
 					const newValue = change["after"] ? await prisma.room.findUnique({where: {id: Number(change["after"]) }}) : undefined;
 					return {
@@ -147,14 +147,14 @@ async function groupByModifiedOn(prisma: any, data: { modifiedOn: Date; modified
 						after: newValue ? `${newValue.name}` : ''
 					}
 				}
-				else if (field === 'dateEnd') {
+				else if (field === 'date_end' || field === 'dateEnd') {
 					return {
 						field,
 						before: change["before"] ? new Intl.DateTimeFormat('en-GB').format(new Date(change["before"])) : '',
 						after: change["after"] ? new Intl.DateTimeFormat('en-GB').format(new Date(change["after"])) : '',
 					}
 				}
-				else if (field === 'filePath') {
+				else if (field === 'file_path' || field === 'filePath') {
 					return {
 						field,
 						before: change["before"] ? change["before"].split('/').pop() : '',
