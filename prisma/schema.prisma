@@ -178,6 +178,12 @@ model UnitHasProfile {
 enum Role {
   Cosec
   Professor
+  /// BSO (biosafety officer)
+  BSO
+  /// RPR (Radiation Protection Referents)
+  RPR
+  /// LSO (laser safety officer)
+  LSO
 }
 
 model Unit {
