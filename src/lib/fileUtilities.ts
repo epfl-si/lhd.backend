@@ -41,7 +41,7 @@ export async function getReportFilesByUnit (unit: any) {
 		return pdfFiles.map(file =>
 		{
 			return {
-				id: JSON.stringify(encryptedID),
+				opLock: JSON.stringify(encryptedID),
 				name: path.basename(file),
 				path: reportFolder + file,
 				unitName: unit.name

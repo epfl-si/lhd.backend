@@ -5,6 +5,7 @@ import {buildSearchConditions} from "../../lib/searchConditionBuilder";
 import {getUnitsFromApi} from "../../lib/callAPI";
 import {
 	alphanumericRegexp,
+	freeFormTextRegexp,
 	opLockValidator,
 	personNameRegexp,
 	roomNameRegexp,
@@ -28,6 +29,7 @@ import {
 	updateUnit
 } from "../../model/units";
 import {Role, Unit} from "../../../generated/prisma";
+import {getReportFilesByUnit} from "../../lib/fileUtilities";
 
 export const UnitRef = builder.prismaObject('Unit', {
 	name: 'Unit',
@@ -176,6 +178,20 @@ const UnitsFromAPIResult = builder.objectRef<UnitFromAPIShape>('UnitsFromAPIResu
 	}),
 });
 
+const UnitReportFilesResult = builder.objectRef<{
+	opLock: string;
+	name: string;
+	path: string;
+	unitName: string;
+}>('UnitReportFilesResult').implement({
+	fields: (t) => ({
+		opLock: t.exposeString('opLock'),
+		name: t.exposeString('name'),
+		path: t.exposeString('path'),
+		unitName: t.exposeString('unitName'),
+	}),
+});
+
 builder.queryType({
 	fields: (t) => ({
 		unitByName: t.prismaField({
@@ -262,7 +278,30 @@ builder.queryType({
 				});
 				return unitList;
 			},
-		})
+		}),
+		unitReportFiles: t.field({
+			type: [UnitReportFilesResult],
+			authScopes: {
+				needPermission: 'canListReportFiles'
+			},
+			args: {
+				units: t.arg.stringList({
+					required: true,
+					validate: z.array(z.string().trim().regex(freeFormTextRegexp))
+				}),
+			},
+			resolve: async (root, args, ctx: any) => {
+				const reportList: { opLock: string; name: string; path: string; unitName: any; }[][] = [];
+				await Promise.all(args.units.map(async (name) => {
+					const unit = await findSingleUnitByName(ctx, name);
+					if (! unit) {
+						throw new Error(`Unit ${name} not found.`);
+					}
+					reportList.push(await getReportFilesByUnit(unit));
+				}));
+				return reportList.flat();
+			},
+		}),
 	}),
 });
 
