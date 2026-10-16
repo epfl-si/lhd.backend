@@ -63,6 +63,27 @@ export async function getUnitByName (prisma: any, unitName: string) {
 	});
 }
 
+export async function getUnitsByRooms (prisma: any, rooms: string[]) {
+	return await prisma.Unit.findMany({
+		where: {
+			unitHasRoom: {
+				some: {
+					room: {
+						name: {
+							in: rooms
+						}
+					}
+				}
+			}
+		},
+		orderBy: [
+			{
+				name: 'asc',
+			},
+		]
+	});
+}
+
 export async function getUnitListBySearch (ctx: any, search: object) {
 	return await ctx.prisma.Unit.findMany({
 		where: {

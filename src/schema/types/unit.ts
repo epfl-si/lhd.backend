@@ -3,7 +3,13 @@ import {OptimisticLock} from "../../lib/optimisticLock";
 import {z} from "zod";
 import {buildSearchConditions} from "../../lib/searchConditionBuilder";
 import {getUnitsFromApi} from "../../lib/callAPI";
-import {alphanumericRegexp, opLockValidator, personNameRegexp, unitNameRegexp} from "../../lib/lhdValidators";
+import {
+	alphanumericRegexp,
+	opLockValidator,
+	personNameRegexp,
+	roomNameRegexp,
+	unitNameRegexp
+} from "../../lib/lhdValidators";
 import {findOrCreatePerson} from "../../model/persons";
 import {
 	createInstitute,
@@ -13,8 +19,10 @@ import {
 	findInstituteByName,
 	findSchoolByName,
 	findSingleUnitByName,
-	findUniqueUnit, getUnitByName,
+	findUniqueUnit,
+	getUnitByName,
 	getUnitListBySearch,
+	getUnitsByRooms,
 	updateProfiles,
 	updateSubUnits,
 	updateUnit
@@ -180,6 +188,21 @@ builder.queryType({
 			},
 			resolve: async (query, root, args, ctx: any, info) => {
 				return await findSingleUnitByName(ctx, args.name);
+			},
+		}),
+		unitsByRoom: t.prismaField({
+			type: [UnitRef],
+			authScopes: {
+				needPermission: 'canListUnits'
+			},
+			args: {
+				rooms: t.arg.stringList({
+					required: true,
+					validate: z.array(z.string().trim().regex(roomNameRegexp))
+				}),
+			},
+			resolve: async (query, root, args, ctx: any, info) => {
+				return await getUnitsByRooms(ctx.prisma, args.rooms);
 			},
 		}),
 		unitsFromFullTextAndPagination: t.field({
