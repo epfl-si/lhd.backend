@@ -29,6 +29,7 @@ UserRef.implement({
     canEditAssessments: t.exposeBoolean('canEditAssessments'),
     canListPeople: t.exposeBoolean('canListPeople'),
     canListForms: t.exposeBoolean('canListForms'),
+    canListLogs: t.exposeBoolean('canListLogs'),
   }),
 });
 
@@ -76,5 +77,6 @@ import './types/hazards/labHazardChild';
 import './types/hazards/tag';
 import './types/room';
 import './types/roomKind';
+import './types/mutationLogs';
 
 export const schema = builder.toSchema();

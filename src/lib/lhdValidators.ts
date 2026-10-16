@@ -18,6 +18,7 @@ export const chemicalNameRegexp = new RegExp("[A-Za-z0-9\\/()*+\"%&='?\\[\\]\\{\
 export const authCodeRegexp = new RegExp(/^[a-zA-Z]*$/);
 export const booleanRegexp = new RegExp("yes|no|1|0|true|false");
 export const reqRegexp = new RegExp("[A-Z][a-zA-Z0-9.]*-[a-zA-Z0-9.]*");
+export const dbNamesRegexp = new RegExp(/^[a-zA-Z_]*$/);
 
 export const saltRegexp = new RegExp("[a-f0-9]+");
 export const ephIdRegexp = new RegExp("[a-zA-Z0-9/+=]+");
