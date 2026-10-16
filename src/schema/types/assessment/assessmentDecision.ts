@@ -40,7 +40,7 @@ const AssessmentDecisionRef = builder.prismaObject('AssessmentDecision', {
     description: t.exposeString('description'),
     conclusion: t.exposeString('conclusion'),
     status: t.exposeString('status'),
-    date: t.exposeString('date'),
+    date: t.expose('date', { type: 'DateTime' }),
     createdBy: t.exposeString('createdBy'),
     createdOn: t.expose('createdOn', { type: 'DateTime' }),
     modifiedBy: t.exposeString('modifiedBy'),
@@ -209,7 +209,7 @@ builder.mutationType({
         description: t.arg.string({ required: true, validate: z.string().regex(freeFormTextRegexp) }),
         conclusion: t.arg.string({ required: true, validate: z.string().regex(freeFormTextRegexp) }),
         status: t.arg.string({ required: true, validate: z.enum(Object.values(AssessmentDecisionStatus)) }),
-        date: t.arg.string({ required: true, validate: fromSanitizer(acceptDateString) }),
+          date: t.arg.string({ required: true, validate: fromSanitizer(acceptDateString) }),
         rooms: t.arg({
           type: [OthersMutationType],
           validate: fromSanitizer(sanitizeMutationTypes),
@@ -241,7 +241,7 @@ builder.mutationType({
         const newcontacts = (args.contacts ?? []).filter(contact => contact.status === 'New');
         await ensurePerson(ctx.prisma, newcontacts);
         await ctx.prisma.$transaction(async (tx: any) => {
-          const ass = await createAssessmentDecision(tx, ctx.user, subject.idDispensationSubject,
+          const ass = await createAssessmentDecision(tx, ctx.user, subject.idAssessmentAndDecisionSubject,
             args.description, args.conclusion, args.subjectOther, args.status, acceptDateString(args.date));
 
           await setAssessmentDecisionRelations(tx, ass.idAssessmentAndDecision, args);
@@ -293,7 +293,7 @@ builder.mutationType({
         const newcontacts = (args.contacts ?? []).filter(contact => contact.status === 'New');
         await ensurePerson(ctx.prisma, newcontacts);
         await ctx.prisma.$transaction(async (tx: any) => {
-          await updateAssessmentDecision(tx, ass.idAssessmentAndDecision, ctx.user, subject.idDispensationSubject,
+          await updateAssessmentDecision(tx, ass.idAssessmentAndDecision, ctx.user, subject.idAssessmentAndDecisionSubject,
             args.description, args.conclusion, args.subjectOther, args.status, acceptDateString(args.date));
           await setAssessmentDecisionRelations(tx, ass.idAssessmentAndDecision, args);
         });
