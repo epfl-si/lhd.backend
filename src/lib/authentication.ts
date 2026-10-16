@@ -63,6 +63,7 @@ export async function authenticateFromBearerToken(req: Request<{}, any, any, Par
                                   user.canEditOrganisms =
                                     user.canListForms = hasRoleManagerOrAdmin;
   user.canListOrganisms = hasRoleManagerOrAdmin || hasRoleCosec;
+  user.canListLogs = user.canListAssessments || user.canListDispensations;
 
   return user;
 }

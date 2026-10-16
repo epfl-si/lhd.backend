@@ -26,6 +26,7 @@ export interface UserInfo {
   canEditAssessments?: boolean;
   canListPeople?: boolean;
   canListForms?: boolean;
+  canListLogs?: boolean;
 }
 
 export function getUserString (user: UserInfo) {
