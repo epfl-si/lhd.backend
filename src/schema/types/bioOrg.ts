@@ -1,7 +1,13 @@
 import {builder} from "../builder";
 import {OptimisticLock} from "../../lib/optimisticLock";
 import {z} from "zod";
-import {fileContentValidator, fileNameRegexp, opLockValidator, organismRegexp} from "../../lib/lhdValidators";
+import {
+	alphanumericRegexp,
+	fileContentValidator,
+	fileNameRegexp,
+	opLockValidator,
+	organismRegexp
+} from "../../lib/lhdValidators";
 import {createBioOrg, deleteBioOrg, getBioOrgByName, updateBioOrg, updateBioOrgInHazards} from "../../model/bioOrg";
 import {BioOrg} from "../../../generated/prisma";
 
@@ -61,15 +67,10 @@ builder.queryType({
 		organismsFromFullText: t.field({
 			type: BioOrgListResult,
 			args: {
-				search: t.arg.string({defaultValue: '', required: true}),
-				skip: t.arg.int({defaultValue: 0, required: true}),
-				take: t.arg.int({defaultValue: 20, required: true}),
+				search: t.arg.string({defaultValue: '', required: true, validate: z.string().regex(alphanumericRegexp)}),
+				skip: t.arg.int({defaultValue: 0, required: true, validate: z.number().int().min(0)}),
+				take: t.arg.int({defaultValue: 20, required: true, validate: z.number().int().min(0)}),
 			},
-			validate: z.object({
-				search: z.string().optional(),
-				skip: z.number().int().nonnegative().optional(),
-				take: z.number().int().nonnegative().optional()
-			}),
 			authScopes: {
 				needPermission: 'canListOrganisms'
 			},

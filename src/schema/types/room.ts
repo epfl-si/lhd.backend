@@ -229,13 +229,13 @@ builder.queryType({
 				needPermission: 'canListRooms'
 			},
 			args: {
-				search: t.arg.string({defaultValue: '', validate: roomSearchSchema}),
-				skip: t.arg.int({defaultValue: 0, validate: z.number().int().min(0).nullish()}),
-				take: t.arg.int({defaultValue: 20, validate: z.number().int().min(0).nullish()}),
+				search: t.arg.string({defaultValue: '', required: true, validate: roomSearchSchema}),
+				skip: t.arg.int({defaultValue: 0, required: true, validate: z.number().int().min(0)}),
+				take: t.arg.int({defaultValue: 20, required: true, validate: z.number().int().min(0)}),
 			},
 			resolve: async (root, args, ctx: any) => {
-				const search = sanitizeSearchString(args.search ?? '', roomSearchSpec);
-				return await getRooms(ctx.prisma, search, args.take ?? 20, args.skip ?? 0);
+				const search = sanitizeSearchString(args.search, roomSearchSpec);
+				return await getRooms(ctx.prisma, search, args.take, args.skip);
 			},
 		}),
 		roomDetails: t.field({

@@ -124,12 +124,12 @@ builder.queryType({
 			},
 			args: {
 				search: t.arg.string({required: true, validate: z.string().regex(hazardCategoryNameRegexp)}),
-				queryString: t.arg.string({defaultValue: '', validate: searchSchema}),
-				skip: t.arg.int({defaultValue: 0, validate: z.number().int().min(0).nullish()}),
-				take: t.arg.int({defaultValue: 20, validate: z.number().int().min(0).nullish()}),
+				queryString: t.arg.string({defaultValue: '', required: true, validate: searchSchema}),
+				skip: t.arg.int({defaultValue: 0, required: true, validate: z.number().int().min(0)}),
+				take: t.arg.int({defaultValue: 20, required: true, validate: z.number().int().min(0)}),
 			},
 			resolve: async (root, args, ctx: any) => {
-				const queryString = sanitizeSearchString(args.queryString ?? '', searchSpec, true);
+				const queryString = sanitizeSearchString(args.queryString, searchSpec, true);
 				const conditions = queryString as any || {};
 				const sql = Object.keys(conditions).map(key => {
 					if (key === 'room') {
@@ -190,7 +190,7 @@ and ${jsonCondition}
 order by l.lab_display asc
 `;
 				const hazardList = await ctx.prisma.$queryRaw<any[]>`${rawQuery}`;
-				const hazardsFiltered = args.take == 0 ? hazardList : hazardList.slice(args.skip, (args.skip ?? 0) + (args.take ?? 20));
+				const hazardsFiltered = args.take == 0 ? hazardList : hazardList.slice(args.skip, args.skip + args.take);
 				const hazards = hazardsFiltered.map((h: any) => {
 					if (h.idLabHasHazardsChild) {
 						h.submission = h.childSubmission;

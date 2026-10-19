@@ -88,12 +88,12 @@ builder.queryType({
 				needPermission: 'canListChemicals'
 			},
 			args: {
-				search: t.arg.string({defaultValue: '', validate: searchSchema}),
+				search: t.arg.string({defaultValue: '', required: true, validate: searchSchema}),
 				skip: t.arg.int({defaultValue: 0, required: true, validate: z.number().int().min(0)}),
-				take: t.arg.int({defaultValue: 20, required: true, validate: z.number().int().min(20)}),
+				take: t.arg.int({defaultValue: 20, required: true, validate: z.number().int().min(0)}),
 			},
 			resolve: async (root, args, ctx: any) => {
-				const search = sanitizeSearchString(args.search ?? '', searchSpec);
+				const search = sanitizeSearchString(args.search, searchSpec);
 				return await getChemicals(ctx.prisma, {skip: args.skip, take: args.take, ...(search as any)});
 			},
 		}),

@@ -182,16 +182,16 @@ builder.queryType({
     assessmentWithPagination: t.field({
       type: AssessmentDecisionsListResult,
       args: {
-        search: t.arg.string({defaultValue: '', validate: searchSchema}),
-        skip: t.arg.int({defaultValue: 0, validate: z.number().int().min(0).nullish()}),
-        take: t.arg.int({defaultValue: 20, validate: z.number().int().min(0).nullish()}),
+        search: t.arg.string({defaultValue: '', required: true, validate: searchSchema}),
+        skip: t.arg.int({defaultValue: 0, required: true, validate: z.number().int().min(0)}),
+        take: t.arg.int({defaultValue: 20, required: true, validate: z.number().int().min(0)}),
       },
       authScopes: {
         needPermission: 'canListAssessments'
       },
       resolve: async (root, args, ctx: any) => {
-        const search = sanitizeSearchString(args.search ?? '', searchSpec);
-        return await getAssessments(ctx.prisma, search, args.take ?? 20, args.skip ?? 0);
+        const search = sanitizeSearchString(args.search, searchSpec);
+        return await getAssessments(ctx.prisma, search, args.take, args.skip);
       },
     })
   }),

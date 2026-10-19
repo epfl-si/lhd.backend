@@ -149,13 +149,6 @@ export const UnitCreationInput = builder.inputType('UnitCreationType', {
 	}),
 });
 
-const unitCreationArgs = builder.args((t) => ({
-	units: t.field({
-		type: [UnitCreationInput],
-		required: { list: true, items: true },
-	}),
-}));
-
 type UnitFromAPIShape = {
 	name?: string | null;
 	path?: string | null;
@@ -227,9 +220,9 @@ builder.queryType({
 				needPermission: 'canListUnits'
 			},
 			args: {
-				search: t.arg.string({defaultValue: '', required: true}),
+				search: t.arg.string({defaultValue: '', required: true, validate: z.string().regex(alphanumericRegexp)}),
 				skip: t.arg.int({defaultValue: 0, required: true, validate: z.number().int().min(0)}),
-				take: t.arg.int({defaultValue: 20, required: true, validate: z.number().int().min(20)}),
+				take: t.arg.int({defaultValue: 20, required: true, validate: z.number().int().min(0)}),
 			},
 			resolve: async (root, args, ctx: any) => {
 				const unitList = await getUnitListBySearch(ctx, buildSearchConditions(args.search));
@@ -311,7 +304,12 @@ builder.mutationType({
 			authScopes: {
 				needPermission: 'canEditUnits'
 			},
-			args: unitCreationArgs,
+			args: {
+				units: t.arg({
+					type: [UnitCreationInput],
+					required: { list: true, items: true },
+				}),
+			},
 			resolve: async (root, args, ctx: any) => {
 				return await ctx.prisma.$transaction(async (tx: any) => {
 					for (const unit of args.units) {

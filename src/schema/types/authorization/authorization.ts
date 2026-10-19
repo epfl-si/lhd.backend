@@ -180,14 +180,14 @@ builder.queryType({
 				needPermission: 'canListAuthorizations'
 			},
 			args: {
-				search: t.arg.string({defaultValue: '', validate: searchSchema}),
-				skip: t.arg.int({defaultValue: 0, validate: z.number().int().min(0).nullish()}),
-				take: t.arg.int({defaultValue: 20, validate: z.number().int().min(0).nullish()}),
+				search: t.arg.string({defaultValue: '', required: true, validate: searchSchema}),
+				skip: t.arg.int({defaultValue: 0, required: true, validate: z.number().int().min(0)}),
+				take: t.arg.int({defaultValue: 20, required: true, validate: z.number().int().min(0)}),
 				type: t.arg.string({required: true, validate: z.enum(['Chemical', 'IonisingRadiation'])})
 			},
 			resolve: async (root, args, ctx: any) => {
-				const search = sanitizeSearchString(args.search ?? '', searchSpec);
-				return await getAuthorizations(ctx.prisma, args.type, {...search as any}, args.take ?? 20, args.skip ?? 0);
+				const search = sanitizeSearchString(args.search, searchSpec);
+				return await getAuthorizations(ctx.prisma, args.type, {...search as any}, args.take, args.skip);
 			},
 		}),
 		authorizationsByRoom: t.field({
@@ -197,8 +197,6 @@ builder.queryType({
 			},
 			args: {
 				roomId: t.arg.string({required: true, validate: opLockValidator}),
-				skip: t.arg.int({defaultValue: 0, validate: z.number().int().min(0).nullish()}),
-				take: t.arg.int({defaultValue: 20, validate: z.number().int().min(0).nullish()}),
 				type: t.arg.string({required: true, validate: z.enum(['Chemical', 'IonisingRadiation'])})
 			},
 			resolve: async (root, args, ctx: any) => {
