@@ -190,7 +190,7 @@ export async function createInstitute (tx: any, name: string, facultyId: number)
 	return await tx.Institute.create({
 		data: {
 			name: name,
-			id_school: facultyId
+			idSchool: facultyId
 		}
 	});
 }
