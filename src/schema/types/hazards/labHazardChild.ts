@@ -55,8 +55,7 @@ const searchSpec = {
 	organism:  {rename: 'organism.organism', validate: alphanumericRegexp},
 	container: {rename: 'container.name', validate: alphanumericRegexp},
 	Room:      {rename: 'room', validate: alphanumericRegexp},
-	Cosec:     {rename: 'cosec', validate: alphanumericRegexp},
-	Prof:      {rename: 'prof', validate: alphanumericRegexp},
+	Profile:   {rename: 'profile', validate: alphanumericRegexp},
 	Unit:      {rename: 'unit', validate: alphanumericRegexp}
 };
 
@@ -134,14 +133,10 @@ builder.queryType({
 				const sql = Object.keys(conditions).map(key => {
 					if (key === 'room') {
 						return Prisma.sql`l.lab_display ilike ${Prisma.raw(`'%${conditions[key]}%'`)}`;
-					} else if (key === 'cosec') {
+					} else if (key === 'profile') {
 						return Prisma.sql`(cos.email_person ilike ${Prisma.raw(`'%${conditions[key]}%'`)} 
 						or cos.name_person ilike ${Prisma.raw(`'%${conditions[key]}%'`)} 
 						or cos.surname_person ilike ${Prisma.raw(`'%${conditions[key]}%'`)})`;
-					} else if (key === 'prof') {
-						return Prisma.sql`(prof.email_person ilike ${Prisma.raw(`'%${conditions[key]}%'`)} 
-						or prof.name_person ilike ${Prisma.raw(`'%${conditions[key]}%'`)} 
-						or prof.surname_person ilike ${Prisma.raw(`'%${conditions[key]}%'`)})`;
 					} else if (key === 'unit') {
 						return Prisma.sql`(u.name_unit ilike ${Prisma.raw(`'%${conditions[key]}%'`)} 
 						or i.name_institut ilike ${Prisma.raw(`'%${conditions[key]}%'`)} 
