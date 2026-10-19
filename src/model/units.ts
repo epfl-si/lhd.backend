@@ -113,8 +113,8 @@ export async function getParentUnit (prisma: any, nameParent: string) {
 	});
 }
 
-export async function findSingleUnitByName (ctx: any, name: string) {
-	return await ctx.prisma.Unit.findFirst({
+export async function findSingleUnitByName (prisma: any, name: string) {
+	return await prisma.Unit.findFirst({
 		where: {
 			name: name
 		}
@@ -172,7 +172,7 @@ export async function updateSubUnits (tx: any, ctx: any, subUnits: any[], idInst
 			});
 		}
 		else if (subunit.status === 'Deleted') {
-			const u = await findSingleUnitByName(ctx, subunit.name);
+			const u = await findSingleUnitByName(ctx.prisma, subunit.name);
 			if (u) await deleteUnitCascade(tx, u);
 		}
 	}

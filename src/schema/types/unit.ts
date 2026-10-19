@@ -196,7 +196,7 @@ builder.queryType({
 				name: t.arg.string({required: true, validate: z.string().regex(unitNameRegexp)}),
 			},
 			resolve: async (query, root, args, ctx: any, info) => {
-				return await findSingleUnitByName(ctx, args.name);
+				return await findSingleUnitByName(ctx.prisma, args.name);
 			},
 		}),
 		unitsByRoom: t.prismaField({
@@ -286,7 +286,7 @@ builder.queryType({
 			resolve: async (root, args, ctx: any) => {
 				const reportList: { opLock: string; name: string; path: string; unitName: any; }[][] = [];
 				await Promise.all(args.units.map(async (name) => {
-					const unit = await findSingleUnitByName(ctx, name);
+					const unit = await findSingleUnitByName(ctx.prisma, name);
 					if (! unit) {
 						throw new Error(`Unit ${name} not found.`);
 					}

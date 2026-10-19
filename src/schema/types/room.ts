@@ -327,7 +327,7 @@ builder.mutationType({
 					await updateRoom(tx,room.id, args.kind, args.vent, args.labTypeIsDifferent);
 
 					for (const unitToChange of args.units) {
-						const unit = await findSingleUnitByName(ctx, unitToChange.name);
+						const unit = await findSingleUnitByName(ctx.prisma, unitToChange.name);
 						if (unitToChange.status === 'New') {
 							await createUnitRoom(tx, room.id, unit.id);
 						}
