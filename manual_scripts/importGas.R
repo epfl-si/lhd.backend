@@ -43,7 +43,7 @@ allDatas <- data %>%
   select('gas', 'hazard', 'state', 'utilisationPressure', 'cylinderVolume', 'numberOfCylinders', 'inCabinet', 'cabinetTag', 'ventilatedCabinet', 'inCorridor', 'lab_display', 'id_lab') %>%
   mutate(
     id_hazard_form_history = 202,
-    submission = paste0('{"data":{"gas":{"gas":"',gas,'","hazard":"',hazard,'","state":"',state,'"},"hazard":"',hazard,'","state":"',state,'","cylinderVolume":"',cylinderVolume,'","numberOfCylinders":',numberOfCylinders,',"utilisationPressure":"',utilisationPressure,'","inCabinet":"',inCabinet,'","status":"Default","delete":false,"ventilatedCabinet":"',ventilatedCabinet,'","inCorridor":"',inCorridor,'","cabinetTag":',cabinetTag,'}}')
+    submission = paste0('{"data":{"gas":{"gas":"',gas,'","hazard":"',hazard,'","state":"',state,'"},"hazard":"',hazard,'","state":"',state,'","cylinderVolume":"',(ifelse(is.na(cylinderVolume), "", cylinderVolume)),'"',(ifelse(is.na(numberOfCylinders), "", paste0(',"numberOfCylinders":',numberOfCylinders))),',"utilisationPressure":"',utilisationPressure,'","inCabinet":"',inCabinet,'","delete":false,',(ifelse(is.na(ventilatedCabinet), "", paste0('"ventilatedCabinet":"',ventilatedCabinet,'",'))),(ifelse(is.na(inCorridor), "", paste0('"inCorridor":"',inCorridor,'",'))),(ifelse(is.na(cabinetTag), "", paste0('"cabinetTag":',cabinetTag,','))),'"status":"Default"}}')
   ) %>%
   select('lab_display', 'id_lab', 'id_hazard_form_history', 'submission')
 
@@ -54,8 +54,7 @@ dataToBeMigrated <- allDatas %>%
 dataWithNoRoom <- allDatas %>%
   filter(is.na(id_lab))
 
-print(dataWithNoRoom)
-# dbAppendTable(con, 'lab_has_hazards', dataToBeMigrated)
+dbAppendTable(con, 'lab_has_hazards', dataToBeMigrated)
 
 # Disconnect from the database
 dbDisconnect(con)
