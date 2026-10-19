@@ -48,3 +48,14 @@ export async function findPersonByName (ctx: any, search: string) {
 		}
 	});
 }
+
+export async function deleteExpiredProfiles (tx: any) {
+	return await tx.UnitHasProfile.deleteMany({
+		where: {
+			expirationDate: {
+				not: null,
+				lt: new Date()
+			}
+		}
+	});
+}
