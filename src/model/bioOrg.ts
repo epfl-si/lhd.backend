@@ -52,8 +52,8 @@ export async function updateBioOrgInHazards (tx: any, oldBioOrgName: string, new
 	}
 }
 
-export async function getBioOrgByName (ctx: any, search: string) {
-	return await ctx.prisma.BioOrg.findMany({
+export async function getBioOrgByName (prisma: any, search: string) {
+	return await prisma.BioOrg.findMany({
 		where: { organism: buildSearchConditions(search) },
 		orderBy: [
 			{

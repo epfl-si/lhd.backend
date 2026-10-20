@@ -225,7 +225,7 @@ builder.queryType({
 				take: t.arg.int({defaultValue: 20, required: true, validate: z.number().int().min(0)}),
 			},
 			resolve: async (root, args, ctx: any) => {
-				const unitList = await getUnitListBySearch(ctx, buildSearchConditions(args.search));
+				const unitList = await getUnitListBySearch(ctx.prisma, buildSearchConditions(args.search));
 
 				const units = args.take == 0 ? unitList : unitList.slice(args.skip, args.skip + args.take);
 				const totalCount = unitList.length;
@@ -364,7 +364,7 @@ builder.mutationType({
 						await updateUnit(tx, unit.id, args.unit);
 					}
 					await updateProfiles(tx, args.profiles, unit.id);
-					await updateSubUnits(tx, ctx, args.subUnits, unit.idInstitute);
+					await updateSubUnits(tx, ctx.prisma, args.subUnits, unit.idInstitute);
 					return unit.name;
 				});
 			},

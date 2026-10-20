@@ -51,7 +51,7 @@ builder.queryType({
 				lhdOnly: t.arg.boolean({defaultValue: false}),
 			},
 			resolve: async (root, args, ctx: any) => {
-				const lhdPeople = await findPersonByName(ctx, args.search);
+				const lhdPeople = await findPersonByName(ctx.prisma, args.search);
 				const lhdPeopleTyped = lhdPeople.map((p: any) => ({
 					type: PersonRef,
 					name: p.name,

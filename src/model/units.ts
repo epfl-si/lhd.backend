@@ -84,8 +84,8 @@ export async function getUnitsByRooms (prisma: any, rooms: string[]) {
 	});
 }
 
-export async function getUnitListBySearch (ctx: any, search: object) {
-	return await ctx.prisma.Unit.findMany({
+export async function getUnitListBySearch (prisma: any, search: object) {
+	return await prisma.Unit.findMany({
 		where: {
 			OR: [
 				{ name: search },
@@ -161,7 +161,7 @@ export async function updateProfiles (tx: any, profiles: any[], id: number) {
 	}
 }
 
-export async function updateSubUnits (tx: any, ctx: any, subUnits: any[], idInstitute: number) {
+export async function updateSubUnits (tx: any, prisma: any, subUnits: any[], idInstitute: number) {
 	for (const subunit of subUnits) {
 		if (subunit.status === 'New') {
 			await tx.Unit.create({
@@ -172,7 +172,7 @@ export async function updateSubUnits (tx: any, ctx: any, subUnits: any[], idInst
 			});
 		}
 		else if (subunit.status === 'Deleted') {
-			const u = await findSingleUnitByName(ctx.prisma, subunit.name);
+			const u = await findSingleUnitByName(prisma, subunit.name);
 			if (u) await deleteUnitCascade(tx, u);
 		}
 	}

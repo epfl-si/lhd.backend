@@ -75,7 +75,7 @@ builder.queryType({
 				needPermission: 'canListOrganisms'
 			},
 			resolve: async (root, args, ctx: any) => {
-				const bioList = await getBioOrgByName(ctx, args.search);
+				const bioList = await getBioOrgByName(ctx.prisma, args.search);
 
 				const bios = args.take == 0 ? bioList : bioList.slice(args.skip, args.skip + args.take);
 				const totalCount = bioList.length;

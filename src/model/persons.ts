@@ -38,8 +38,8 @@ export async function ensurePerson(prisma: any, persons: any) {
 	}
 }
 
-export async function findPersonByName (ctx: any, search: string) {
-	return await ctx.prisma.Person.findMany({
+export async function findPersonByName (prisma: any, search: string) {
+	return await prisma.Person.findMany({
 		where: {
 			OR: [
 				{ name: { contains: search }},
