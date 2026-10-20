@@ -4,7 +4,7 @@ library(dplyr)
 library(dbplyr)
 library(readxl)
 
-environment <- "local" # local | test | prod
+environment <- "test" # local | test | prod
 
 if (environment == 'local') {
   con <- dbConnect(
