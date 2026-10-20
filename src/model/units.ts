@@ -102,17 +102,6 @@ export async function getUnitListBySearch (prisma: any, search: object) {
 	});
 }
 
-export async function getParentUnit (prisma: any, nameParent: string) {
-	return await prisma.Unit.findMany({
-		where: {name: nameParent},
-		orderBy: [
-			{
-				name: 'asc',
-			},
-		]
-	});
-}
-
 export async function findSingleUnitByName (prisma: any, name: string) {
 	return await prisma.Unit.findFirst({
 		where: {
