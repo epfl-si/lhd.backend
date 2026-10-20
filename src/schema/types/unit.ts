@@ -188,7 +188,7 @@ const UnitReportFilesResult = builder.objectRef<{
 builder.queryType({
 	fields: (t) => ({
 		unitByName: t.prismaField({
-			type: 'Unit',
+			type: UnitRef,
 			authScopes: {
 				needPermission: 'canListUnits'
 			},
