@@ -20,11 +20,11 @@ if (environment == 'local') {
   # Postgres
   con <- dbConnect(
     RPostgres::Postgres(),
-    host = db_conf$postgresql$host,
-    dbname = db_conf$postgresql$name,
-    user = db_conf$postgresql$user,
-    password = db_conf$postgresql$password,
-    port = db_conf$postgresql$port
+    host = "127.0.0.1", # connect on oc; oc port-forward service/lhd-postgres-rw 15432:5432
+    dbname = 'lhd',
+    user = 'lhd',
+    password = db_conf$postgresql_oc$password,
+    port = 15432
   )
 }
 

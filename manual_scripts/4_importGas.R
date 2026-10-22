@@ -21,11 +21,11 @@ if (environment == 'local') {
   # Postgres
   con <- dbConnect(
     RPostgres::Postgres(),
-    host = db_conf$postgresql$host,
-    dbname = db_conf$postgresql$name,
-    user = db_conf$postgresql$user,
-    password = db_conf$postgresql$password,
-    port = db_conf$postgresql$port
+    host = "127.0.0.1", # connect on oc; oc port-forward service/lhd-postgres-rw 15432:5432
+    dbname = 'lhd',
+    user = 'lhd',
+    password = db_conf$postgresql_oc$password,
+    port = 15432
   )
 }
 print(con)
@@ -42,7 +42,7 @@ allDatas <- data %>%
   left_join(lab_local, by = 'lab_display') %>%
   select('gas', 'hazard', 'state', 'utilisationPressure', 'cylinderVolume', 'numberOfCylinders', 'inCabinet', 'cabinetTag', 'ventilatedCabinet', 'inCorridor', 'lab_display', 'id_lab') %>%
   mutate(
-    id_hazard_form_history = 202,
+    id_hazard_form_history = 198,
     submission = paste0('{"data":{"gas":{"gas":"',gas,'","hazard":"',hazard,'","state":"',state,'"},"hazard":"',hazard,'","state":"',state,'","cylinderVolume":"',(ifelse(is.na(cylinderVolume), "", cylinderVolume)),'"',(ifelse(is.na(numberOfCylinders), "", paste0(',"numberOfCylinders":',numberOfCylinders))),',"utilisationPressure":"',utilisationPressure,'","inCabinet":"',inCabinet,'","delete":false,',(ifelse(is.na(ventilatedCabinet), "", paste0('"ventilatedCabinet":"',ventilatedCabinet,'",'))),(ifelse(is.na(inCorridor), "", paste0('"inCorridor":"',inCorridor,'",'))),(ifelse(is.na(cabinetTag), "", paste0('"cabinetTag":',cabinetTag,','))),'"status":"Default"}}')
   ) %>%
   select('lab_display', 'id_lab', 'id_hazard_form_history', 'submission')
