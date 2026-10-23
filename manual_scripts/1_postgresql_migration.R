@@ -5,13 +5,16 @@ library(RPostgres)
 environment <- "test" # local | test | prod
 
 if (environment == 'local') {
+  db_conf <- yaml::read_yaml(paste0("/keybase/team/epfl_lhd/secrets_test.yml"))
+
+  # MariaDB
   mdb <- dbConnect(
     RMariaDB::MariaDB(),
-    host = "127.0.0.1",
-    port = 3307,
-    user = "root",
-    password = "ROOT",
-    dbname = "lhd_test"
+    host = db_conf$mysql$lhd_admin$host,
+    dbname = db_conf$mysql$lhd_admin$dbname,
+    user = db_conf$mysql$lhd_admin$user,
+    password = db_conf$mysql$lhd_admin$password,
+    port = db_conf$mysql$lhd_admin$port
   )
 
   pg <- dbConnect(
