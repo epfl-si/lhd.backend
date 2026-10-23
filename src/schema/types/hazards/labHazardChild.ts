@@ -178,9 +178,8 @@ left join unit_has_profile uhp on uhp.id_unit = u.id_unit
 left join person cos on cos.id_person = uhp.id_person
 left join institut i on i.id_institut = u.id_institut
 left join faculty f on f.id_faculty = i.id_faculty
-left join lab_has_hazards_additional_info lhhai on lhhai.id_lab = l.id_lab
-where hc.hazard_category_name = ${args.search}
-and lhhai.id_hazard_category = hc.id_hazard_category 
+left join lab_has_hazards_additional_info lhhai on lhhai.id_lab = l.id_lab and lhhai.id_hazard_category = hc.id_hazard_category
+where hc.hazard_category_name = ${args.search} 
 and ${jsonCondition}
 order by l.lab_display asc
 `;
