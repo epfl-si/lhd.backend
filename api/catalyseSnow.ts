@@ -12,7 +12,7 @@ import {todayDate} from "../src/lib/date";
 import {
 	createAuthorization,
 	getAuthorizations,
-	getTheAuthorization,
+	getTheAuthorization, setAuthorizationRelations,
 	updateAuthorization
 } from "../src/model/authorization";
 import {getBearerToken} from "../src/lib/authentication";
@@ -22,6 +22,7 @@ import {AuthChem} from "../generated/prisma";
 import {getRooms} from "../src/model/rooms";
 import {getUnitByName} from "../src/model/units";
 import {Role} from "../generated/prisma";
+import {ensurePerson} from "../src/model/persons";
 
 export function makeRESTAPI() {
 	const app = express();
@@ -55,7 +56,22 @@ export function makeRESTAPI() {
 		async (req, res) => {
 			const exp = new Date(req.params.date);
 			exp.setHours(12, 0, 0, 0);
-			await createAuthorization (req.prisma, req.params.req, "Active", todayDate(), exp, "Chemical", req.params.id_unit)
+			const changes = {
+				cas: req.params.cas.map(c => {
+					return {name: c, status: "New"};
+				}),
+				holders: req.params.scipers.map(sc => {
+					return {sciper: sc, status: "New"};
+				}),
+				rooms: req.params.room_ids.map(r => {
+					return {id: r, status: "New"};
+				}),
+			}
+			await ensurePerson(req.prisma, changes.holders);
+			await req.prisma.$transaction(async (tx: any) => {
+				const authorization = await createAuthorization (tx, req.params.req, "Active", todayDate(), exp, "Chemical", req.params.id_unit);
+				await setAuthorizationRelations(tx, Number(authorization.idAuthorization), changes);
+			});
 			res.json({Message: "Ok"});
 		}
 	);
