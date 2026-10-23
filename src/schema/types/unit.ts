@@ -28,8 +28,9 @@ import {
 	updateSubUnits,
 	updateUnit
 } from "../../model/units";
-import {Role, Unit} from "../../../generated/prisma";
+import {Unit} from "../../../generated/prisma";
 import {getReportFilesByUnit} from "../../lib/fileUtilities";
+import {labelToRole} from "./unitHasProfile";
 
 export const UnitRef = builder.prismaObject('Unit', {
 	name: 'Unit',
@@ -124,7 +125,7 @@ const PersonInputType = builder.inputType('PersonInputType', {
 const ProfileInputType = builder.inputType('ProfileInputType', {
 	fields: (t) => ({
 		status: t.string({ required: true, validate: z.enum(['New', 'Deleted', 'Default']) }),
-		role: t.field({ type: Role, required: true }),
+		role: t.string({ required: true, validate: z.enum(Object.keys(labelToRole) as [string, ...string[]]) }),
 		expirationDate: t.string({ validate: z.iso.date() }),
 		person: t.field({ type: PersonInputType, required: true }),
 	}),

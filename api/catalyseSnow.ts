@@ -21,6 +21,7 @@ import {getChemicals} from "../src/model/chemicals";
 import {AuthChem} from "../generated/prisma";
 import {getRooms} from "../src/model/rooms";
 import {getUnitByName} from "../src/model/units";
+import {Role} from "../generated/prisma";
 
 export function makeRESTAPI() {
 	const app = express();
@@ -197,8 +198,8 @@ export function makeRESTAPI() {
 		async (req, res) => {
 			const resultNew = await getUnitByName(req.prisma, req.params.unit ? `${req.params.unit}*` : '');
 			const list = resultNew.map((unit: { unitHasProfiles: any[]; unitHasRoom: { idLab: number; }[]; institute: { school: { name: string; }; name: string; }; name: string; id: number; }) => {
-				const cosecs = unit.unitHasProfiles.filter((prof: { role: string; }) => prof.role === 'Cosec').map((uhc: { person: { sciper: number; }; }) => uhc.person.sciper);
-				const profs = unit.unitHasProfiles.filter((prof: { role: string; }) => prof.role === 'Professor').map((uhc: { person: { sciper: number; }; }) => uhc.person.sciper);
+				const cosecs = unit.unitHasProfiles.filter((prof: { role: string; }) => prof.role === Role.Cosec).map((uhc: { person: { sciper: number; }; }) => uhc.person.sciper);
+				const profs = unit.unitHasProfiles.filter((prof: { role: string; }) => prof.role === Role.HeadOfUnit).map((uhc: { person: { sciper: number; }; }) => uhc.person.sciper);
 				const rooms = unit.unitHasRoom.map((uhr: { idLab: any; }) => uhr.idLab);
 				return {
 					sciper_cosec: cosecs,

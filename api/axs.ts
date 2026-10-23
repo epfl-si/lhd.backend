@@ -7,6 +7,7 @@ import {getHazardLevel} from "../src/lib/hazardsParser";
 import {errorHandler} from "./lib/errorHandler";
 import {getGroupMembersFromApi} from "../src/lib/callAPI";
 import {getBearerToken} from "../src/lib/authentication";
+import {Role} from "../generated/prisma";
 
 export function makeRESTAxsAPI() {
 	const app = express();
@@ -47,10 +48,10 @@ export function makeRESTAxsAPI() {
 			res.json({ lhd_room: {
 					room: roomResult.name,
 					sciper_prof: [
-						...new Set(roomResult.unitHasRoom.flatMap((uhr: any) => uhr.unit.unitHasProfiles.filter((uhp: any) => uhp.role === 'Professor').map((uhp: any) => uhp.person.sciper)))
+						...new Set(roomResult.unitHasRoom.flatMap((uhr: any) => uhr.unit.unitHasProfiles.filter((uhp: any) => uhp.role === Role.HeadOfUnit).map((uhp: any) => uhp.person.sciper)))
 					],
 					sciper_cosec: [
-						...new Set(roomResult.unitHasRoom.flatMap((uhr: any) => uhr.unit.unitHasProfiles.filter((uhp: any) => uhp.role === 'Cosec').map((uhp: any) => uhp.person.sciper)))
+						...new Set(roomResult.unitHasRoom.flatMap((uhr: any) => uhr.unit.unitHasProfiles.filter((uhp: any) => uhp.role === Role.Cosec).map((uhp: any) => uhp.person.sciper)))
 					],
 					hazard: {
 						bio: bioLevel.bio.length > 0 && !bioException,

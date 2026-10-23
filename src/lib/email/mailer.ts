@@ -13,7 +13,7 @@ import {
 	renewDispensation
 } from "./EmailTemplates";
 import {getFormattedDate} from "../date";
-import {AuthChem, UnitHasProfile} from "../../../generated/prisma";
+import {AuthChem, UnitHasProfile, Role} from "../../../generated/prisma";
 import {getHazardLevel} from "../hazardsParser";
 import {getRoomWithHazards} from "../../model/rooms";
 import {getUserString, UserInfo} from "../userType";
@@ -183,8 +183,8 @@ export async function sendEmailForDispensation (modifiedByName: string,
 		.replaceAll('\n', '<br />');
 
 	const holders = dispensation.dispensationHasHolder.map((dhr: any) => dhr.holder.email);
-	const profs = dispensation.dispensationHasUnit.flatMap((dhu: any) => dhu.unit.unitHasProfiles).filter((p: UnitHasProfile) => p.role === 'Professor').map((pers: any) => pers.person.email);
-	const cosecs = dispensation.dispensationHasUnit.flatMap((dhu: any) => dhu.unit.unitHasProfiles).filter((p: UnitHasProfile) => p.role === 'Cosec').map((pers: any) => pers.person.email);
+	const profs = dispensation.dispensationHasUnit.flatMap((dhu: any) => dhu.unit.unitHasProfiles).filter((p: UnitHasProfile) => p.role === Role.HeadOfUnit).map((pers: any) => pers.person.email);
+	const cosecs = dispensation.dispensationHasUnit.flatMap((dhu: any) => dhu.unit.unitHasProfiles).filter((p: UnitHasProfile) => p.role === Role.Cosec).map((pers: any) => pers.person.email);
 	const cc = [modifiedByEmail, process.env.DISPENSATION_CC, profs, cosecs];
 	await mailer.sendMail({
 		from: `"LHD" <${process.env.SMTP_USER}>`,

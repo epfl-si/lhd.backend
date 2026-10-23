@@ -1,5 +1,6 @@
 import {Role, Unit} from "../../generated/prisma";
 import {buildSearchConditions} from "../lib/searchConditionBuilder";
+import { labelToRole } from "../schema/types/unitHasProfile";
 import {findOrCreatePerson} from "./persons";
 
 export async function deleteUnitCascade (tx: any, u:Unit) {
@@ -131,7 +132,7 @@ export async function updateProfiles (tx: any, profiles: any[], id: number) {
 				data: {
 					idPerson: p.idPerson,
 					idUnit: id,
-					role: person.role,
+					role: labelToRole[person.role],
 					expirationDate: person.expirationDate ? new Date(person.expirationDate) : null
 				}
 			});
@@ -143,7 +144,7 @@ export async function updateProfiles (tx: any, profiles: any[], id: number) {
 				where: {
 					idUnit: id,
 					idPerson: p.idPerson,
-					role: person.role
+					role: labelToRole[person.role]
 				}
 			});
 		}
@@ -206,7 +207,7 @@ export async function createUnit (tx: any, name: string, sciper: number, institu
 			data: {
 				idPerson: responsibleId,
 				idUnit: unit.id,
-				role: Role.Professor
+				role: Role.HeadOfUnit
 			}
 		});
 	}
