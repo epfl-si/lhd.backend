@@ -31,6 +31,7 @@ import {
 import {Unit} from "../../../generated/prisma";
 import {getReportFilesByUnit} from "../../lib/fileUtilities";
 import {labelToRole} from "./unitHasProfile";
+import { toDateString } from "../../lib/stringFormatter";
 
 export const UnitRef = builder.prismaObject('Unit', {
 	name: 'Unit',
@@ -126,7 +127,16 @@ const ProfileInputType = builder.inputType('ProfileInputType', {
 	fields: (t) => ({
 		status: t.string({ required: true, validate: z.enum(['New', 'Deleted', 'Default']) }),
 		role: t.string({ required: true, validate: z.enum(Object.keys(labelToRole) as [string, ...string[]]) }),
-		expirationDate: t.string({ validate: z.iso.date() }),
+		expirationDate: t.string({ validate: z.iso.date().refine(
+				(value) => {
+					const today = new Date();
+					const max = new Date(today);
+					max.setUTCFullYear(max.getUTCFullYear() + 2);
+
+					return value >= toDateString(today) && value <= toDateString(max);
+				},
+				{ message: 'Expiration date must be between today and two years from now' },
+			)}),
 		person: t.field({ type: PersonInputType, required: true }),
 	}),
 });

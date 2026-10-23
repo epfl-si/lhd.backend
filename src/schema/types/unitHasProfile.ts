@@ -1,5 +1,6 @@
 import {builder} from "../builder";
 import {Role} from '../../../generated/prisma/client';
+import { splitCamelCase } from "../../lib/stringFormatter";
 
 export const UnitHasProfileRef = builder.prismaObject('UnitHasProfile', {
 	name: 'UnitHasProfile',
@@ -14,12 +15,6 @@ export const UnitHasProfileRef = builder.prismaObject('UnitHasProfile', {
 		expirationDate: t.expose('expirationDate', { type: 'DateTime' })
 	}),
 });
-
-function splitCamelCase(str: string) {
-	const label = str.replace(/([a-z])([A-Z])/g, '$1 $2') // Insert a space between lowercase and uppercase letters
-	const txt = label.charAt(0).toUpperCase() + label.slice(1);
-	return txt.replaceAll('_', ' ');
-}
 
 export const labelToRole = Object.fromEntries(
 	Object.values(Role).map((r) => [splitCamelCase(r), r])
