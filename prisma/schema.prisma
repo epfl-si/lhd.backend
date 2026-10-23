@@ -178,11 +178,11 @@ model UnitHasProfile {
 enum Role {
   Cosec
   HeadOfUnit @map("Head of unit")
-  /// BSO (biosafety officer)
+  /// BSO (Biosafety officer)
   BSO
-  /// RPR (Radiation Protection Referents)
-  RPR
-  /// LSO (laser safety officer)
+  /// RPR (Radiation safety officer)
+  RSO
+  /// LSO (Laser safety officer)
   LSO
 }
 
