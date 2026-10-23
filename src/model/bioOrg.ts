@@ -38,7 +38,7 @@ export async function updateBioOrgInHazards (tx: any, oldBioOrgName: string, new
 	for ( const child of children ) {
 		const newSubmission = JSON.parse(child.submission);
 		newSubmission.data.organism.organism = newBioOrg.organism;
-		newSubmission.data.organism.risk_group = newBioOrg.riskGroup;
+		newSubmission.data.organism.riskGroup = newBioOrg.riskGroup;
 		newSubmission.data.organism.filePath = newBioOrg.filePath;
 		newSubmission.data.fileLink = newBioOrg.filePath;
 		newSubmission.data.riskGroup = newBioOrg.riskGroup;
