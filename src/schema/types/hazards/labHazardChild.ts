@@ -138,9 +138,9 @@ builder.queryType({
 						or cos.name_person ilike ${Prisma.raw(`'%${conditions[key]}%'`)} 
 						or cos.surname_person ilike ${Prisma.raw(`'%${conditions[key]}%'`)})`;
 					} else if (key === 'unit') {
-						return Prisma.sql`(u.name_unit ilike ${Prisma.raw(`'%${conditions[key]}%'`)} 
-						or i.name_institut ilike ${Prisma.raw(`'%${conditions[key]}%'`)} 
-						or f.name_faculty ilike ${Prisma.raw(`'%${conditions[key]}%'`)})`;
+						return Prisma.sql`(u.name_unit ilike ${Prisma.raw(`'%${conditions[key].replaceAll('*','')}%'`)} 
+						or i.name_institut ilike ${Prisma.raw(`'%${conditions[key].replaceAll('*','')}%'`)} 
+						or f.name_faculty ilike ${Prisma.raw(`'%${conditions[key].replaceAll('*','')}%'`)})`;
 					} else {
 						return Prisma.sql`
 	((lhh.submission::jsonb #>> ${Prisma.raw(`'{data,${key.replaceAll('.',',')}}'`)}) ilike ${Prisma.raw(`'%${conditions[key]}%'`)} OR 
