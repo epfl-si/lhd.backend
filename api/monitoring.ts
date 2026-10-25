@@ -1,12 +1,11 @@
-import express from "express";
-import {Request} from "express";
+import express, {Request} from "express";
 
 export function makeRESTHealthAPI() {
 	const app = express();
 
 	app.get("/",
 		async (req: Request, res) => {
-			res.json({Message: "Server up"});
+			res.json({status: "up"});
 		});
 
 	return app;
