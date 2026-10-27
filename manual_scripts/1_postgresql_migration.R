@@ -105,42 +105,44 @@ tables_in_order <- c(
   "hazards_additional_info_has_tag"
 )
 
-for (tbl in tables_in_order) {
-  dbExecute(pg, sprintf('ALTER TABLE "%s" DISABLE TRIGGER USER;', tbl))
-}
+dbWithTransaction(pg, {
+  for (tbl in tables_in_order) {
+    dbExecute(pg, sprintf('ALTER TABLE "%s" DISABLE TRIGGER USER;', tbl))
+  }
 
-for (tbl in tables_in_order) {
-  df <- dbReadTable(mdb, tbl)
-  dbWriteTable(pg, tbl, df, append = TRUE, row.names = FALSE)
-}
+  for (tbl in tables_in_order) {
+    df <- dbReadTable(mdb, tbl)
+    dbWriteTable(pg, tbl, df, append = TRUE, row.names = FALSE)
+  }
 
-for (tbl in tables_in_order) {
-  dbExecute(pg, sprintf('ALTER TABLE "%s" ENABLE TRIGGER USER;', tbl))
-}
+  for (tbl in tables_in_order) {
+    dbExecute(pg, sprintf('ALTER TABLE "%s" ENABLE TRIGGER USER;', tbl))
+  }
 
-for (tbl in tables_in_order) {
-  # get primary keys for each table
-  pk_col <- dbGetQuery(pg, sprintf(
-    "SELECT a.attname FROM pg_index i
-     JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey)
-     WHERE i.indrelid = '\"%s\"'::regclass AND i.indisprimary;", tbl
-  ))
-  # if the primary key is founded, continue
-  if (nrow(pk_col) > 0) {
-    col <- pk_col$attname[1]
-    # get the sequence name for this table and this column
-    seq <- dbGetQuery(pg, sprintf(
-      "SELECT pg_get_serial_sequence('\"%s\"', '%s') AS seq;", tbl, col
-    ))$seq
-    if (!is.na(seq) && !is.null(seq)) {
-      # set the sequence value with the max id of the table
-      dbExecute(pg, sprintf(
-        "SELECT setval('%s', COALESCE((SELECT MAX(\"%s\") FROM \"%s\"), 1));",
-        seq, col, tbl
-      ))
+  for (tbl in tables_in_order) {
+    # get primary keys for each table
+    pk_col <- dbGetQuery(pg, sprintf(
+      "SELECT a.attname FROM pg_index i
+       JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey)
+       WHERE i.indrelid = '\"%s\"'::regclass AND i.indisprimary;", tbl
+    ))
+    # if the primary key is founded, continue
+    if (nrow(pk_col) > 0) {
+      col <- pk_col$attname[1]
+      # get the sequence name for this table and this column
+      seq <- dbGetQuery(pg, sprintf(
+        "SELECT pg_get_serial_sequence('\"%s\"', '%s') AS seq;", tbl, col
+      ))$seq
+      if (!is.na(seq) && !is.null(seq)) {
+        # set the sequence value with the max id of the table
+        dbExecute(pg, sprintf(
+          "SELECT setval('%s', COALESCE((SELECT MAX(\"%s\") FROM \"%s\"), 1));",
+          seq, col, tbl
+        ))
+      }
     }
   }
-}
+})
 
 dbDisconnect(pg)
 dbDisconnect(mdb)

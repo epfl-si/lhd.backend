@@ -31,11 +31,9 @@ if (environment == 'local') {
 result_prof <- tbl(con, "subunpro") %>%
   collect() %>%
   mutate(
-    role = 'Professor',
+    role = 'Head of unit',
   ) %>%
   select('id_unit', 'id_person', 'role')
-
-dbAppendTable(con, 'unit_has_profile', result_prof)
 
 result_cosec <- tbl(con, "unit_has_cosec") %>%
   collect() %>%
@@ -44,6 +42,9 @@ result_cosec <- tbl(con, "unit_has_cosec") %>%
   ) %>%
   select('id_unit', 'id_person', 'role')
 
-dbAppendTable(con, 'unit_has_profile', result_cosec)
+dbWithTransaction(con, {
+  dbAppendTable(con, 'unit_has_profile', result_prof)
+  dbAppendTable(con, 'unit_has_profile', result_cosec)
+})
 
 dbDisconnect(con)

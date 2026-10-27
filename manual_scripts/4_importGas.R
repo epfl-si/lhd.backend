@@ -54,7 +54,9 @@ dataToBeMigrated <- allDatas %>%
 dataWithNoRoom <- allDatas %>%
   filter(is.na(id_lab))
 
-dbAppendTable(con, 'lab_has_hazards', dataToBeMigrated)
+dbWithTransaction(con, {
+  dbAppendTable(con, 'lab_has_hazards', dataToBeMigrated)
+})
 
 # Disconnect from the database
 dbDisconnect(con)
