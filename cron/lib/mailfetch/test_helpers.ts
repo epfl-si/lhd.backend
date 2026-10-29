@@ -8,7 +8,7 @@ export function check(message: string, valid: boolean): null {
     console.log(`FAILED    ${message}`);
   } else {
     console.log(`OK        ${message}`);
-	}
+  }
 }
 
 const today = helper.todayStamp();

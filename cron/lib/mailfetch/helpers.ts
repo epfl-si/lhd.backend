@@ -8,7 +8,7 @@ export function decodeMaybeBase64Subject (subject: string): string {
 			return Buffer.from(subject.substring(10), 'base64').toString('utf8');
 		} catch (e) {
 			return subject;
-		}
+    }
 	}
 	return subject;
 }

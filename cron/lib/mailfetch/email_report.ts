@@ -27,7 +27,7 @@ export default class EmailReport {
   to: (string | undefined)[] | undefined;
   subject: (string | undefined) = undefined;
   email: Email;
-	errors: string[] = [];
+  errors: string[] = [];
   messages: string[] = [];
   basename: string | null = null;
   savedir: string | null = null;
@@ -40,7 +40,7 @@ export default class EmailReport {
   version: string = "";
   replyto: string[] = [];
 
-	// ------------------------------------------------------------- Constructor
+  // ------------------------------------------------------------- Constructor
   constructor(msg: FetchMessageObject, email: Email) {
     this.id = msg.uid;
     this.to = msg.envelope?.to?.map(addr => addr.address);
@@ -54,13 +54,13 @@ export default class EmailReport {
     if (this.isValid()) {
       this.savedir = path.join(config.DOCUMENTS_PATH, 'upload', 'report_audits', 'pdf', String(this.unit_id));
       const m = this.date.match(DATE_RE);
-		  const [, day, mon, yea] = m;
-		  this.basename = `Visit_report_${yea}-${mon}-${day}_${this.version}_${this.unit_name}.pdf`;
+      const [, day, mon, yea] = m;
+      this.basename = `Visit_report_${yea}-${mon}-${day}_${this.version}_${this.unit_name}.pdf`;
       this.fullpath = path.join(this.savedir, this.basename);
       // this might introduce new errors and hence invalidate the object
       this.validateAttachment();
     }
-	}
+  }
 
   isCorrectlyAddressed() : boolean {
     if (this.to == undefined || this.subject == undefined) return false
@@ -71,45 +71,45 @@ export default class EmailReport {
       if (a.toLowerCase() === tolc) return true;
     }
     return false;
-	}
+  }
 
-	isAddressedTo(toAddress: string): boolean {
+  isAddressedTo(toAddress: string): boolean {
     const tolc = toAddress.toLowerCase();
     for (const a of this.to) {
       if (a == undefined) continue;
-  		if (a.toLowerCase() === tolc) return true;
+      if (a.toLowerCase() === tolc) return true;
     }
     return false;
   }
 
 
 
-	// ------------------------------------------------------------------ Methods
+  // ------------------------------------------------------------------ Methods
 
   async validateAttachment(): Promise<bolean> {
     if (!this.fullpath) throw new Error("EmailReport::validateAttachment can be called only if fullpath is defined");
     if (!this.savedir) throw new Error("EmailReport::validateAttachment can be called only if savedir is defined");
-  	if (fs.existsSync(this.fullpath)) {
-  		if (areFilesIdentical(this.fullpath, this.tmpFilePath ?? '')) {
-  			this.addMessage('The exact same report was already present (skipped)');
-  			if (this.tmpFilePath && fs.existsSync(this.tmpFilePath)) {
-  				fs.unlinkSync(this.tmpFilePath);
-  			}
-  			return true;
-  		} else if (!config.OVERWRITE) {
-  			this.addError('A different document already exist for this data. Please change the metadata and try again or ask admin to set REWRITE option to true');
-  			return false;
-  		}
+    if (fs.existsSync(this.fullpath)) {
+      if (areFilesIdentical(this.fullpath, this.tmpFilePath ?? '')) {
+        this.addMessage('The exact same report was already present (skipped)');
+        if (this.tmpFilePath && fs.existsSync(this.tmpFilePath)) {
+          fs.unlinkSync(this.tmpFilePath);
+        }
+        return true;
+      } else if (!config.OVERWRITE) {
+        this.addError('A different document already exist for this data. Please change the metadata and try again or ask admin to set REWRITE option to true');
+        return false;
+      }
     }
     return true;
-	}
+  }
 
-	// Extract & save the PDF attachment to a tmp file. `attachment` is a
-	// postal-mime attachment object ({ content: ArrayBuffer, mimeType, ... }).
-	async parsePDFpart (): Promise<boolean> {
-  	// PDF attachment (there should be one ant only one)
-  	const attachment = (this.email.attachments || []).find(
-  		(a) => (a.mimeType || '').toLowerCase() === 'application/pdf',
+  // Extract & save the PDF attachment to a tmp file. `attachment` is a
+  // postal-mime attachment object ({ content: ArrayBuffer, mimeType, ... }).
+  async parsePDFpart (): Promise<boolean> {
+    // PDF attachment (there should be one ant only one)
+    const attachment = (this.email.attachments || []).find(
+      (a) => (a.mimeType || '').toLowerCase() === 'application/pdf',
     );
     if (!attachment || !attachment.content) {
       this.addError('Missing or unparseable PDF part.');
@@ -122,22 +122,22 @@ export default class EmailReport {
       logger(`    type:     ${attachment.mimeType}`, 2);
       logger(`    size:     ${attachment.content.byteLength}`, 2);
     }
-		this.tmpFilePath = path.join(
-			os.tmpdir(),
-			`email_attachment${Date.now()}_${crypto.randomBytes(5).toString('hex')}.pdf`,
-		);
+    this.tmpFilePath = path.join(
+      os.tmpdir(),
+      `email_attachment${Date.now()}_${crypto.randomBytes(5).toString('hex')}.pdf`,
+    );
     try {
       const buffer = Buffer.from(attachment.content);
-			fs.writeFileSync(this.tmpFilePath, buffer);
-			return true;
-		} catch (e) {
-			this.addError('!Err: could not write temporary attachment to file');
-			return false;
-		}
+      fs.writeFileSync(this.tmpFilePath, buffer);
+      return true;
+    } catch (e) {
+      this.addError('!Err: could not write temporary attachment to file');
+      return false;
+    }
     return true;
   }
 
-	// Parse the PLAIN text body for `key: value` metadata lines.
+  // Parse the PLAIN text body for `key: value` metadata lines.
   async parseTXTpart(): Promise<boolean> {
     if (typeof this.email.text !== 'string' || !(this.email.text.length > 0)) {
       this.addError('Missing TEXT metadata part.');
@@ -225,76 +225,76 @@ export default class EmailReport {
     return ret;
   }
 
-	isValid (): boolean {
-		return this.id !== null && this.errors.length === 0;
-	}
+  isValid (): boolean {
+    return this.id !== null && this.errors.length === 0;
+  }
 
 
   from(): string | undefined {
     return this.email.from?.address
-	}
+  }
 
-	async save (): Promise<boolean> {
+  async save (): Promise<boolean> {
     if (!this.isValid()) return false;
     if (!this.fullpath) throw new Error("EmailReport::save can be called only if fullpath is defined");
     if (!this.savedir) throw new Error("EmailReport::save can be called only if savedir is defined");
-		if (!fs.existsSync(this.savedir)) {
-			fs.mkdirSync(this.savedir, {recursive: true, mode: 0o775});
-		}
-		if (!(fs.existsSync(this.savedir) && fs.statSync(this.savedir).isDirectory())) return false;
+    if (!fs.existsSync(this.savedir)) {
+      fs.mkdirSync(this.savedir, {recursive: true, mode: 0o775});
+    }
+    if (!(fs.existsSync(this.savedir) && fs.statSync(this.savedir).isDirectory())) return false;
 
-		if (config.DRYRUN && config.DOCUMENTS_PATH.indexOf('/tmp') !== 0) {
-			logger(`Dry Run: Should move ${this.tmpFilePath} to ${this.fullpath} Will be deleted instead`, 1);
-			this.cleanup();
-			return true;
-		}
+    if (config.DRYRUN && config.DOCUMENTS_PATH.indexOf('/tmp') !== 0) {
+      logger(`Dry Run: Should move ${this.tmpFilePath} to ${this.fullpath} Will be deleted instead`, 1);
+      this.cleanup();
+      return true;
+    }
 
-		// fs.renameSync(this.tmpFilePath as string, this.fullpath);
+    // fs.renameSync(this.tmpFilePath as string, this.fullpath);
     fs.copyFileSync(this.tmpFilePath as string, this.fullpath);
-		fs.unlinkSync(this.tmpFilePath);
+    fs.unlinkSync(this.tmpFilePath);
 
-		return true;
-	}
+    return true;
+  }
 
   to_s(): string {
-		let out = '';
-		if (config.DEBUG > 1) {
+    let out = '';
+    if (config.DEBUG > 1) {
       out += `to:       ${(this.to || []).join(', ')}\n`;
       out += `tmpfile:  ${this.tmpFilePath}\n`;
-			out += `outidr:   ${this.savedir}\n`;
-			out += `path:     ${this.fullpath}\n`;
-			out += `replyto:  ${(this.replyto || []).join(', ')}\n`;
-			out += `subject:  ${this.email.subject}\n`;
-		}
-		out += `status:   ${this.isValid() ? 'VALID' : 'NOT VALID'}\n`;
-		out += `date:     ${this.date}\n`;
-		out += `unit:     ${this.unit_name} (id: ${this.unit_id || 'undefined'})\n`;
-		out += `version:  ${this.version}\n`;
-		out += `filename: ${this.basename}\n`;
+      out += `outidr:   ${this.savedir}\n`;
+      out += `path:     ${this.fullpath}\n`;
+      out += `replyto:  ${(this.replyto || []).join(', ')}\n`;
+      out += `subject:  ${this.email.subject}\n`;
+    }
+    out += `status:   ${this.isValid() ? 'VALID' : 'NOT VALID'}\n`;
+    out += `date:     ${this.date}\n`;
+    out += `unit:     ${this.unit_name} (id: ${this.unit_id || 'undefined'})\n`;
+    out += `version:  ${this.version}\n`;
+    out += `filename: ${this.basename}\n`;
     out += `id:       ${this.id}\n`;
-		if (this.errors.length > 0) {
-			out += `Errors:\n  - ${this.errors.join('\n  - ')}\n`;
-		}
-		if (this.messages.length > 0) {
-			out += `Messages:\n  - ${this.messages.join('\n  - ')}\n`;
-		}
-		return out;
-	}
+    if (this.errors.length > 0) {
+      out += `Errors:\n  - ${this.errors.join('\n  - ')}\n`;
+    }
+    if (this.messages.length > 0) {
+      out += `Messages:\n  - ${this.messages.join('\n  - ')}\n`;
+    }
+    return out;
+  }
 
-	// remove temp file if needed
-	cleanup (): void {
-		if (this.tmpFilePath && fs.existsSync(this.tmpFilePath)) {
-			fs.unlinkSync(this.tmpFilePath);
-		}
-	}
+  // remove temp file if needed
+  cleanup (): void {
+    if (this.tmpFilePath && fs.existsSync(this.tmpFilePath)) {
+      fs.unlinkSync(this.tmpFilePath);
+    }
+  }
 
-	addError (message: string): void {
-		this.errors.push(message);
-		logger(`${this.id}: error ${message}`, 2);
-	}
+  addError (message: string): void {
+    this.errors.push(message);
+    logger(`${this.id}: error ${message}`, 2);
+  }
 
-	addMessage (message: string): void {
-		this.messages.push(message);
-		logger(`${this.id}: msg ${message}`, 2);
-	}
+  addMessage (message: string): void {
+    this.messages.push(message);
+    logger(`${this.id}: msg ${message}`, 2);
+  }
 }

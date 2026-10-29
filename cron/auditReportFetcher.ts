@@ -83,11 +83,11 @@ async function fetchAndProcessMessages(client: ImapFlow) {
     } else {
       badMessages.push(message.id);
       await snowEmail(message);
-			await adminEmail('[LHD] message with invalid metadata', message);
-			logger(`Message ${message.id} - INVALID: ${message.errors.join(' / ')}`, 0, 4);
+      await adminEmail('[LHD] message with invalid metadata', message);
+      logger(`Message ${message.id} - INVALID: ${message.errors.join(' / ')}`, 0, 4);
     }
-		message.cleanup();
-	}
+    message.cleanup();
+  }
 
   await moveTo(client, doneMessages, config.MAILBOX_DONE);
   await moveTo(client, badMessages, config.MAILBOX_BAD);
@@ -109,5 +109,5 @@ async function main (): Promise<void> {
 
 main().catch((e: any) => {
   logger(e, 0);
-	process.exitCode = 1;
+  process.exitCode = 1;
 });

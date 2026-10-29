@@ -12,20 +12,20 @@ export async function fetchMessages(client: ImapFlow): Promise<EmailReport[]> {
     logger(`No messages`, 1);
     return [];
   }
-	const bs = (config.BATCH_SIZE > 0) ? Math.min(nmsg, config.BATCH_SIZE) : nmsg;
+  const bs = (config.BATCH_SIZE > 0) ? Math.min(nmsg, config.BATCH_SIZE) : nmsg;
   logger(`Total messages in the INBOX: ${nmsg} (treating ${bs} of them)`, 0);
   if (bs <= 0) return[];
 
   let result = [];
   for (let imsg = 1; imsg <= bs; imsg++) {
-		const msg = await client.fetchOne(String(imsg), {
+    const msg = await client.fetchOne(String(imsg), {
       envelope: true,
       // bodyStructure: true,
-			source: true,
-			uid: true,
-		}, {uid: false});
+      source: true,
+      uid: true,
+    }, {uid: false});
 
-		if (!msg) continue;
+    if (!msg) continue;
     // would be nicer to build email with EmailReport but I cannot use await
     // within a constructors (at least this is what I could figure out)
     const email = await PostalMime.parse(msg.source);
